@@ -1,0 +1,494 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                 String    @id @default(cuid())
+  userId             String
+  providerType       String
+  providerId         String
+  providerAccountId  String
+  refreshToken       String?
+  accessToken        String?
+  accessTokenExpires DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  expires      DateTime
+  sessionToken String   @unique
+  accessToken  String   @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  passwordHash  String?   // Optional for users with OAuth; required for email/password
+  role          UserRole  @default(USER)
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  managers      Manager[] // Added relation to Manager
+
+  @@map("users")
+}
+
+model VerificationRequest {
+  id         String   @id @default(cuid())
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, token])
+}
+
+// =============================================
+// DIGITAL MENU QR SYSTEM MODELS
+// =============================================
+
+model Restaurant {
+  id               String            @id @default(uuid())
+  name             String            // NOT NULL
+  description      String?
+  address          String?
+  phone            String?
+  email            String?
+  defaultLanguage  String            @default("es") // ISO language code
+  timezone         String            @default("UTC") // Standard timezone
+  logoUrl          String?
+  themeColor       String            @default("#2563eb") // Hex color for branding
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  managers         Manager[]
+  qrCodes          QRCode[]
+  categories       MenuCategory[]
+  menuItems        MenuItem[]
+  customizationGroups CustomizationGroup[]
+  faqs             FAQ[]
+  customerSessions CustomerSession[]
+  orders           Order[]
+  menuAnalytics    MenuAnalytics[]
+  languageUsage    LanguageUsage[]
+  customerQuestions CustomerQuestion[]
+
+  @@map("restaurants")
+}
+
+model Manager {
+  id           String      @id @default(uuid())
+  restaurantId String
+  userId       String      // Added to link to User for authentication
+  name         String
+  email        String      @unique
+  role         UserRole    @default(MANAGER) // Use UserRole enum
+  isActive     Boolean     @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("managers")
+  @@index([restaurantId], name: "idx_managers_restaurant_id")
+  @@index([email], name: "idx_managers_email")
+  @@index([userId], name: "idx_managers_user_id")
+}
+
+model QRCode {
+  id          String     @id @default(uuid())
+  restaurantId String
+  tableNumber String?
+  qrToken     String     @unique
+  qrImageUrl  String?
+  isActive    Boolean    @default(true)
+  scanCount   Int        @default(0)
+  lastScanned DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  restaurant  Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  customerQuestions CustomerQuestion[]
+  customerSessions CustomerSession[]
+  orders       Order[]
+  menuAnalytics MenuAnalytics[]
+
+  @@map("qr_codes")
+  @@index([restaurantId], name: "idx_qr_codes_restaurant_id")
+  @@index([qrToken], name: "idx_qr_codes_token")
+  @@index([isActive], name: "idx_qr_codes_active")
+}
+
+model MenuCategory {
+  id           String    @id @default(uuid())
+  restaurantId String
+  name         String    // NOT NULL
+  description  String?
+  displayOrder Int       @default(0)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuItems    MenuItem[]
+
+  @@map("menu_categories")
+  @@index([restaurantId], name: "idx_menu_categories_restaurant_id")
+}
+
+model MenuItem {
+  id           String    @id @default(uuid())
+  restaurantId String
+  categoryId   String?
+  name         String    // NOT NULL
+  description  String?
+  price        Decimal   @db.Decimal(10,2) // NOT NULL
+  imageUrl     String?
+  preparationTime Int?
+  calories     Int?
+  isVegetarian Boolean   @default(false)
+  isVegan      Boolean   @default(false)
+  isGlutenFree Boolean   @default(false)
+  isSpicy      Boolean   @default(false)
+  spiceLevel   Int       @default(0)
+  isBestseller Boolean   @default(false)
+  isAvailable  Boolean   @default(true)
+  displayOrder Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  category     MenuCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orderItems   OrderItem[]
+  customizations MenuItemCustomization[]
+  allergens    MenuItemAllergen[]
+  ingredients  MenuItemIngredient[]
+  menuAnalytics MenuAnalytics[]
+
+  @@map("menu_items")
+  @@index([restaurantId], name: "idx_menu_items_restaurant_id")
+  @@index([categoryId], name: "idx_menu_items_category_id")
+  @@index([isAvailable], name: "idx_menu_items_available")
+}
+
+model CustomizationGroup {
+  id           String    @id @default(uuid())
+  restaurantId String
+  name         String    // NOT NULL
+  description  String?
+  isRequired   Boolean   @default(false)
+  maxSelections Int      @default(1)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  options      CustomizationOption[]
+  menuItems    MenuItemCustomization[]
+
+  @@map("customization_groups")
+}
+
+model CustomizationOption {
+  id           String    @id @default(uuid())
+  groupId      String
+  name         String    // NOT NULL
+  priceModifier Decimal  @db.Decimal(8,2) @default(0.00)
+  isDefault    Boolean   @default(false)
+  displayOrder Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  group        CustomizationGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  orderItemCustomizations OrderItemCustomization[]
+
+  @@map("customization_options")
+}
+
+model MenuItemCustomization {
+  menuItemId          String
+  customizationGroupId String
+
+  menuItem            MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  customizationGroup  CustomizationGroup @relation(fields: [customizationGroupId], references: [id], onDelete: Cascade)
+
+  @@id([menuItemId, customizationGroupId])
+  @@map("menu_item_customizations")
+}
+
+model Allergen {
+  id        String   @id @default(uuid())
+  name      String   @unique // NOT NULL
+  icon      String?
+  createdAt DateTime @default(now())
+
+  menuItems MenuItemAllergen[]
+
+  @@map("allergens")
+}
+
+model MenuItemAllergen {
+  menuItemId String
+  allergenId String
+
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  allergen   Allergen @relation(fields: [allergenId], references: [id], onDelete: Cascade)
+
+  @@id([menuItemId, allergenId])
+  @@map("menu_item_allergens")
+}
+
+model Ingredient {
+  id          String   @id @default(uuid())
+  name        String   // NOT NULL
+  description String?
+  isAllergen  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  menuItems   MenuItemIngredient[]
+
+  @@map("ingredients")
+}
+
+model MenuItemIngredient {
+  menuItemId   String
+  ingredientId String
+  isRemovable  Boolean @default(true)
+
+  menuItem     MenuItem    @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient  @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@id([menuItemId, ingredientId])
+  @@map("menu_item_ingredients")
+}
+
+model Translation {
+  id           String   @id @default(uuid())
+  entityType   String   // NOT NULL
+  entityId     String   // NOT NULL
+  fieldName    String   // NOT NULL
+  languageCode String   // NOT NULL
+  translatedText String // NOT NULL
+  isAiGenerated Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([entityType, entityId, fieldName, languageCode])
+  @@map("translations")
+  @@index([entityType, entityId], name: "idx_translations_entity")
+  @@index([languageCode], name: "idx_translations_language")
+  @@index([entityType, entityId, fieldName, languageCode], name: "idx_translations_lookup")
+}
+
+model FAQ {
+  id           String   @id @default(uuid())
+  restaurantId String
+  question     String   // NOT NULL
+  answer       String   // NOT NULL
+  category     String?
+  isActive     Boolean  @default(true)
+  viewCount    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("faqs")
+  @@index([restaurantId], name: "idx_faqs_restaurant_id")
+  @@index([isActive], name: "idx_faqs_active")
+}
+
+model CustomerQuestion {
+  id           String       @id @default(uuid())
+  restaurantId String
+  qrCodeId     String?
+  question     String       // NOT NULL
+  answer       String?
+  languageCode String       // NOT NULL
+  isAnswered   Boolean      @default(false)
+  answerSource AnswerSource @default(FAQ)
+  sessionId    String?
+  createdAt    DateTime     @default(now())
+  answeredAt   DateTime?
+
+  restaurant   Restaurant       @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  qrCode       QRCode?          @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+  session      CustomerSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@map("customer_questions")
+  @@index([restaurantId], name: "idx_customer_questions_restaurant_id")
+}
+
+model CustomerSession {
+  id              String   @id @default(uuid())
+  restaurantId    String
+  qrCodeId        String?
+  sessionToken    String   @unique // NOT NULL
+  preferredLanguage String // NOT NULL
+  customerIp      String?  @db.Inet
+  userAgent       String?
+  startedAt       DateTime @default(now())
+  lastActivity    DateTime @default(now())
+  isActive        Boolean  @default(true)
+
+  restaurant      Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  qrCode          QRCode?    @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+  orders          Order[]
+  customerQuestions CustomerQuestion[]
+
+  @@map("customer_sessions")
+  @@index([restaurantId], name: "idx_customer_sessions_restaurant_id")
+  @@index([sessionToken], name: "idx_customer_sessions_token")
+}
+
+model Order {
+  id                        String       @id @default(uuid())
+  restaurantId              String
+  sessionId                 String?
+  qrCodeId                  String?
+  customerLanguage          String       // NOT NULL
+  originalLanguage          String       // NOT NULL
+  totalAmount               Decimal      @db.Decimal(10,2) @default(0.00) // NOT NULL
+  specialRequests           String?
+  translatedSpecialRequests String?
+  status                    OrderStatus  @default(DRAFT)
+  submittedAt               DateTime?
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
+
+  restaurant                Restaurant       @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  session                   CustomerSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  qrCode                    QRCode?          @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+  orderItems                OrderItem[]
+
+  @@map("orders")
+  @@index([restaurantId], name: "idx_orders_restaurant_id")
+  @@index([sessionId], name: "idx_orders_session_id")
+}
+
+model OrderItem {
+  id           String   @id @default(uuid())
+  orderId      String
+  menuItemId   String
+  quantity     Int      @default(1) // NOT NULL
+  unitPrice    Decimal  @db.Decimal(10,2) // NOT NULL
+  totalPrice   Decimal  @db.Decimal(10,2) // NOT NULL
+  specialInstructions String?
+  translatedInstructions String?
+  createdAt    DateTime @default(now())
+
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem     MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Restrict)
+  customizations OrderItemCustomization[]
+
+  @@map("order_items")
+  @@index([orderId], name: "idx_order_items_order_id")
+}
+
+model OrderItemCustomization {
+  id                  String   @id @default(uuid())
+  orderItemId         String
+  customizationOptionId String
+  priceModifier       Decimal  @db.Decimal(8,2) @default(0.00) // NOT NULL
+  createdAt           DateTime @default(now())
+
+  orderItem           OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  customizationOption CustomizationOption @relation(fields: [customizationOptionId], references: [id], onDelete: Restrict)
+
+  @@map("order_item_customizations")
+}
+
+model MenuAnalytics {
+  id           String      @id @default(uuid())
+  restaurantId String
+  menuItemId   String?
+  qrCodeId     String?
+  eventType    EventType   // NOT NULL
+  languageCode String?
+  sessionId    String?
+  metadata     Json?
+  createdAt    DateTime    @default(now())
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuItem     MenuItem?  @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  qrCode       QRCode?    @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+
+  @@map("menu_analytics")
+  @@index([restaurantId], name: "idx_menu_analytics_restaurant_id")
+  @@index([createdAt], name: "idx_menu_analytics_created_at")
+}
+
+model LanguageUsage {
+  id           String   @id @default(uuid())
+  restaurantId String
+  languageCode String   // NOT NULL
+  usageCount   Int      @default(1)
+  lastUsed     DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@unique([restaurantId, languageCode])
+  @@map("language_usage")
+  @@index([restaurantId], name: "idx_language_usage_restaurant_id")
+}
+
+// ================== ENUMS ==================
+
+enum UserRole {
+  USER
+  MANAGER
+  ADMIN
+}
+
+enum EventType {
+  VIEW
+  ADD_TO_ORDER
+  CUSTOMIZE
+  QUESTION
+}
+
+enum OrderStatus {
+  DRAFT
+  SUBMITTED
+  CONFIRMED
+  PREPARING
+  READY
+  SERVED
+}
+
+enum AnswerSource {
+  FAQ
+  AI
+  MANUAL
+}
