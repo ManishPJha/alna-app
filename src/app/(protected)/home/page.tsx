@@ -9,12 +9,6 @@ const HomePage = async () => {
         await signOut();
     };
 
-    console.log(' ----- session', session);
-
-    // if (!session) {
-    //   return redirect(paths.landingPage, RedirectType.replace);
-    // }
-
     return (
         <WelcomeMessage
             name={session?.user.name ?? ''}

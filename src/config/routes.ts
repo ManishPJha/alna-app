@@ -30,7 +30,6 @@ import type { RouteData } from '@/types/routes';
 export const paths = {
     landingPage: '/',
     homePage: '/home',
-    temps: '/temps',
     signIn: '/auth/signin',
     signUp: '/auth/signup',
 } as const;
@@ -47,11 +46,6 @@ export const routes: Record<keyof typeof paths, RouteData> = {
         name: 'Home Page',
         path: paths.homePage,
         accessType: 'protected',
-    },
-    temps: {
-        name: 'Temps Page',
-        path: paths.temps,
-        accessType: 'public',
     },
     signIn: {
         name: 'Sign In Page',

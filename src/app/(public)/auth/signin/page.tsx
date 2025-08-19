@@ -20,12 +20,9 @@ export default function SignIn() {
 
     const signInAction = async (payload: SignInActionPayload) => {
         const result = await signIn('credentials', {
-            redirect: false,
             email: payload.email,
             password: payload.password,
         });
-
-        console.log('signInAction result -', result);
 
         if (result?.error) {
             log.error('signInAction error -', result.error);
@@ -48,8 +45,6 @@ export default function SignIn() {
 
             if (result?.error) {
                 setError(result.error);
-            } else {
-                // router.push(paths.homePage);
             }
         } catch (err) {
             setError('Something went wrong. Please try again.');

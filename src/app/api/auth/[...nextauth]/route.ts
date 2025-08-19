@@ -1,3 +1,5 @@
-import { handlers } from "@/features/auth";
+import { handlers } from '@/features/auth';
 
 export const { GET, POST } = handlers;
+
+export const runtime = 'nodejs';

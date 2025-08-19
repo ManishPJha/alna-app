@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { type UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -37,7 +38,7 @@ declare module 'next-auth' {
 export const nextAuthConfig = {
     providers: [
         CredentialsProvider({
-            name: 'Credentials',
+            name: 'credentials',
             credentials: {
                 email: { label: 'Email', type: 'email' },
                 password: { label: 'Password', type: 'password' },
@@ -47,57 +48,128 @@ export const nextAuthConfig = {
                     return null;
                 }
 
-                const user = await db.user.findUnique({
-                    where: { email: credentials?.email as string },
-                });
+                try {
+                    const user = await db.user.findUnique({
+                        where: { email: credentials.email as string },
+                    });
 
-                if (user && user.passwordHash) {
-                    console.log('user -', user);
-                    // Verify password (e.g., using bcrypt)
-                    if (
-                        await bcrypt.compare(
-                            credentials.password as string,
-                            user.passwordHash
-                        )
-                    ) {
-                        return {
-                            id: user.id,
-                            email: user.email,
-                            role: user.role,
-                        };
+                    if (!user || !user.passwordHash) {
+                        return null;
                     }
 
-                    // return { id: user.id, email: user.email, role: user.role };
+                    const isValidPassword = await bcrypt.compare(
+                        credentials.password as string,
+                        user.passwordHash
+                    );
+
+                    if (!isValidPassword) {
+                        return null;
+                    }
+
+                    return {
+                        id: user.id,
+                        email: user.email,
+                        name: user.name,
+                        role: user.role,
+                        image: user.image,
+                    };
+                } catch (error) {
+                    console.error('Error during authentication:', error);
+                    return null;
                 }
-                return null;
             },
         }),
         GoogleProvider({
             clientId: authConfig.googleClientId,
             clientSecret: authConfig.googleClientSecret,
         }),
-        /**
-         * ...add more providers here.
-         *
-         * Most other providers require a bit more work than the Discord provider. For example, the
-         * GitHub provider requires you to add the `refresh_token_expires_in` field to the Account
-         * model. Refer to the NextAuth.js docs for the provider you want to use. Example:
-         *
-         * @see https://next-auth.js.org/providers/github
-         */
     ],
+    // adapter: PrismaAdapter(db),
     adapter: PrismaAdapter(db),
+    session: {
+        strategy: 'jwt',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+    },
+    jwt: {
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+    },
     callbacks: {
-        session: ({ session, user }) => ({
-            ...session,
-            user: {
-                ...session.user,
-                role: (user as unknown as { role: UserRole }).role,
-                id: user.id,
-            },
-        }),
+        async signIn({ user, account }) {
+            // Allow OAuth sign-ins
+            if (account?.provider !== 'credentials') {
+                return true;
+            }
+
+            // For credentials, check if user exists and is active
+            if (user?.email) {
+                const dbUser = await db.user.findUnique({
+                    where: { email: user.email },
+                });
+                return dbUser?.isActive ?? false;
+            }
+
+            return false;
+        },
+        async jwt({ token, user, account }) {
+            // Initial sign in
+            if (user) {
+                token.role = (user as unknown as any).role as UserRole;
+                token.id = user.id;
+            }
+
+            // Handle account linking for OAuth providers
+            if (account?.provider === 'google' && user?.email) {
+                const dbUser = await db.user.findUnique({
+                    where: { email: user.email },
+                });
+
+                if (dbUser) {
+                    token.role = dbUser.role;
+                    token.id = dbUser.id;
+                }
+            }
+
+            return token;
+        },
+        async session({ session, token }) {
+            if (token) {
+                console.log('+++++++++++++token', token);
+                console.log(' ----- session', session);
+                session.user.id = token.id as string;
+                session.user.role = token.role as UserRole;
+            }
+            return session;
+        },
+        async redirect({ url, baseUrl }) {
+            // Allows relative callback URLs
+            if (url.startsWith('/')) return `${baseUrl}${url}`;
+            // Allows callback URLs on the same origin
+            else if (new URL(url).origin === baseUrl) return url;
+            return baseUrl;
+        },
     },
     pages: {
         signIn: '/auth/signin',
+        signOut: '/auth/signin',
+        error: '/auth/signin',
     },
+    events: {
+        async signIn({ user, account, isNewUser }) {
+            console.log(
+                `User ${user.email} signed in with ${account?.provider}`
+            );
+
+            // Update last login time for existing users
+            if (!isNewUser && user.id) {
+                await db.user.update({
+                    where: { id: user.id },
+                    data: { updatedAt: new Date() },
+                });
+            }
+        },
+        async signOut({ token }: any) {
+            console.log(`User signed out: ${token?.email}`);
+        },
+    },
+    debug: process.env.NODE_ENV === 'development',
 } satisfies NextAuthConfig;
