@@ -3,7 +3,7 @@ import type { RouteData, RoutePath } from '@/types/routes';
 
 /**
  * Returns true if the given path is a public route.
- * Public routes are accessible without authentication.
+ * Public routes are accessible without authentication (sign-in, sign-up, landing, etc.).
  * @param {RoutePath | string} path Path to check
  * @returns {boolean} True if public route, false otherwise
  */
@@ -49,7 +49,7 @@ export function isUniversalRoute(path: string): boolean {
 export function getRouteData(path: RoutePath): RouteData | undefined;
 export function getRouteData(path: string): RouteData | undefined;
 export function getRouteData(path: string): RouteData | undefined {
-    // Extract just the path part, removing query parameters
+    // Extract just the path part, removing query parameters and fragments
     const pathWithoutQuery = path.split('?')[0]?.split('#')[0] ?? path;
     const normalizedPath = normalizePath(pathWithoutQuery);
 
@@ -60,13 +60,20 @@ export function getRouteData(path: string): RouteData | undefined {
     if (exactMatch) return exactMatch;
 
     // If no exact match, sort routes by path length (longest first)
-    // and find the first matching route segment (so we can handle nested routes)
+    // and find the first matching route segment (handles nested routes)
     return Object.values(routes)
-        .sort((a, b) => b.path.length - a.path.length) // Sort by path length (longest first)
+        .sort((a, b) => b.path.length - a.path.length)
         .find((route): boolean => {
+            // Handle root path specially
+            if (route.path === '/') {
+                return normalizedPath === '/';
+            }
+
+            // Check if the normalized path starts with the route path
+            // and ensure it's a proper path segment boundary
             return (
                 normalizedPath.startsWith(route.path) &&
-                (route.path === '/' ||
+                (normalizedPath.length === route.path.length ||
                     normalizedPath[route.path.length] === '/')
             );
         });
@@ -75,10 +82,42 @@ export function getRouteData(path: string): RouteData | undefined {
 /**
  * Returns the path to redirect to after a successful login.
  * This can be customized based on application requirements.
+ * @param {string} [returnTo] - Optional return URL from query params
  * @returns {string} Path to redirect to after login
  */
-export function getAfterLoginPath(): string {
-    return paths.homePage;
+export function getAfterLoginPath(returnTo?: string): string {
+    // If returnTo is provided and it's a safe internal path, use it
+    if (returnTo && isSafeRedirectPath(returnTo)) {
+        return returnTo;
+    }
+    return paths.dashboard;
+}
+
+/**
+ * Checks if a redirect path is safe (internal to the application).
+ * Prevents open redirect vulnerabilities.
+ * @param {string} path - The path to validate
+ * @returns {boolean} True if the path is safe for redirect
+ */
+export function isSafeRedirectPath(path: string): boolean {
+    try {
+        // Must start with / and not be a protocol
+        if (!path.startsWith('/') || path.startsWith('//')) {
+            return false;
+        }
+
+        // Normalize the path
+        const normalized = normalizePath(path);
+
+        // Additional safety checks
+        if (normalized.includes('..') || normalized.includes('\0')) {
+            return false;
+        }
+
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 /**
@@ -123,4 +162,26 @@ export function normalizePath(path: string): string {
     }
 
     return normalized;
+}
+
+/**
+ * Utility to check what type of route a path is
+ * Useful for debugging and testing
+ */
+export function getRouteType(
+    path: string
+): 'public' | 'protected' | 'universal' | 'unknown' {
+    const routeData = getRouteData(path);
+    return routeData?.accessType ?? 'unknown';
+}
+
+/**
+ * Debug helper to log route information
+ */
+export function debugRoute(path: string): void {
+    const routeData = getRouteData(path);
+    console.log(`[RouteDebug] Path: ${path}`);
+    console.log(`[RouteDebug] Normalized: ${normalizePath(path)}`);
+    console.log(`[RouteDebug] Route Data:`, routeData);
+    console.log(`[RouteDebug] Type: ${getRouteType(path)}`);
 }

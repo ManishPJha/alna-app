@@ -31,5 +31,7 @@ export async function middleware(
 export const config = {
     // Specify which routes the middleware applies to
     // Exclude health checks, static files, and favicon
-    matcher: ['/((?!api/health|_next/static|_next/image|favicon.ico).*)'],
+    matcher: [
+        '/((?!api/health|_next/static|_next/image|favicon.ico|alna_logo.png|alna_assistant.png).*)',
+    ],
 };

@@ -46,21 +46,29 @@ model Session {
 model User {
   id            String    @id @default(cuid())
   name          String?
-  passwordHash  String?   // Optional for users with OAuth; required for email/password
+  passwordHash  String?
   role          UserRole  @default(USER)
   email         String?   @unique
   emailVerified DateTime?
   image         String?
   isActive      Boolean   @default(true)
+  
+  // Restaurant management fields
+  restaurantId  String?   // Optional - only for MANAGER role users
+  lastLogin     DateTime?
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
   sessions      Session[]
-  managers      Manager[] // Added relation to Manager
+  
+  // Direct relationship to restaurant
+  restaurant    Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
 
   @@map("users")
+  @@index([restaurantId], name: "idx_users_restaurant_id")
+  @@index([role], name: "idx_users_role")
 }
-
 model VerificationRequest {
   id         String   @id @default(cuid())
   identifier String
@@ -78,19 +86,20 @@ model VerificationRequest {
 
 model Restaurant {
   id               String            @id @default(uuid())
-  name             String            // NOT NULL
+  name             String
   description      String?
   address          String?
   phone            String?
   email            String?
-  defaultLanguage  String            @default("es") // ISO language code
-  timezone         String            @default("UTC") // Standard timezone
+  defaultLanguage  String            @default("es")
+  timezone         String            @default("UTC")
   logoUrl          String?
-  themeColor       String            @default("#2563eb") // Hex color for branding
+  themeColor       String            @default("#2563eb")
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  managers         Manager[]
+  // Direct relationship to users (managers)
+  managers         User[]            // Users with MANAGER role and this restaurantId
   qrCodes          QRCode[]
   categories       MenuCategory[]
   menuItems        MenuItem[]
@@ -105,26 +114,26 @@ model Restaurant {
   @@map("restaurants")
 }
 
-model Manager {
-  id           String      @id @default(uuid())
-  restaurantId String
-  userId       String      // Added to link to User for authentication
-  name         String
-  email        String      @unique
-  role         UserRole    @default(MANAGER) // Use UserRole enum
-  isActive     Boolean     @default(true)
-  lastLogin    DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+// model Manager {
+//   id           String      @id @default(uuid())
+//   restaurantId String
+//   userId       String      // Added to link to User for authentication
+//   name         String
+//   email        String      @unique
+//   role         UserRole    @default(MANAGER)
+//   isActive     Boolean     @default(true)
+//   lastLogin    DateTime?
+//   createdAt    DateTime    @default(now())
+//   updatedAt    DateTime    @updatedAt
 
-  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+//   restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+//   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("managers")
-  @@index([restaurantId], name: "idx_managers_restaurant_id")
-  @@index([email], name: "idx_managers_email")
-  @@index([userId], name: "idx_managers_user_id")
-}
+//   @@map("managers")
+//   @@index([restaurantId], name: "idx_managers_restaurant_id")
+//   @@index([email], name: "idx_managers_email")
+//   @@index([userId], name: "idx_managers_user_id")
+// }
 
 model QRCode {
   id          String     @id @default(uuid())

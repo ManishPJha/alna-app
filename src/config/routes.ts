@@ -32,6 +32,7 @@ export const paths = {
     homePage: '/home',
     signIn: '/auth/signin',
     signUp: '/auth/signup',
+    dashboard: '/dashboard',
 } as const;
 
 // ⚠️ DEFINE METADATA FOR NEW ROUTES HERE ⚠️
@@ -56,5 +57,10 @@ export const routes: Record<keyof typeof paths, RouteData> = {
         name: 'Sign Up Page',
         path: paths.signUp,
         accessType: 'public',
+    },
+    dashboard: {
+        name: 'Dashboard Page',
+        path: paths.dashboard,
+        accessType: 'protected',
     },
 };

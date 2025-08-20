@@ -7,6 +7,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 
 import { authConfig } from '@/config/appConfig';
+import { signOut } from '@/features/auth';
 import { db } from '@/lib/db';
 
 /**
@@ -28,6 +29,11 @@ declare module 'next-auth' {
     //   // ...other properties
     //   // role: UserRole;
     // }
+}
+
+async function logOutUser() {
+    'use server';
+    await signOut({ redirectTo: '/auth/signin' });
 }
 
 /**
@@ -133,8 +139,18 @@ export const nextAuthConfig = {
         },
         async session({ session, token }) {
             if (token) {
-                console.log('+++++++++++++token', token);
-                console.log(' ----- session', session);
+                // console.log('+++++++++++++token', token);
+                // console.log(' ----- session', session);
+
+                // validate token
+                const dbUser = await db.user.findUnique({
+                    where: { id: token.id as string },
+                });
+
+                if (!dbUser) {
+                    await logOutUser();
+                }
+
                 session.user.id = token.id as string;
                 session.user.role = token.role as UserRole;
             }
