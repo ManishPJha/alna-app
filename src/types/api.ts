@@ -11,10 +11,16 @@ export interface Restaurant {
     themeColor: string;
     createdAt: string;
     updatedAt: string;
+
     // Computed fields
     managersCount?: number;
     qrCodesCount?: number;
     menuItemsCount?: number;
+
+    // Relations (when included)
+    managers?: User[];
+    qrCodes?: QRCode[];
+    menuItems?: MenuItem[];
 }
 
 export interface User {
@@ -27,6 +33,41 @@ export interface User {
     lastLogin?: string;
     createdAt: string;
     updatedAt: string;
+    image?: string;
+
+    // Relations
+    restaurant?: Restaurant;
+}
+
+export interface QRCode {
+    id: string;
+    name: string;
+    restaurantId: string;
+    tableNumber?: string;
+    url: string;
+    isActive: boolean;
+    scansCount: number;
+    lastScanAt?: string;
+    createdAt: string;
+    updatedAt: string;
+
+    // Relations
+    restaurant?: Restaurant;
+}
+
+export interface MenuItem {
+    id: string;
+    name: string;
+    description?: string;
+    price: number;
+    currency: string;
+    category: string;
+    isAvailable: boolean;
+    imageUrl?: string;
+    restaurantId: string;
+    createdAt: string;
+    updatedAt: string;
+
     // Relations
     restaurant?: Restaurant;
 }
@@ -47,7 +88,14 @@ export interface Pagination {
 
 export interface ApiResponse<T> {
     success: boolean;
+    status?: number;
     data?: T;
     error?: string;
     message?: string;
+}
+
+export interface ApiError {
+    message: string;
+    status?: number;
+    code?: string;
 }
