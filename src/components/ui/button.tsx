@@ -42,9 +42,28 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant, size, asChild = false, ...props }, ref) => {
         const Comp = asChild ? Slot : 'button';
+
+        function getDifferentVariantClasses(
+            variant: ButtonProps['variant'],
+            size: ButtonProps['size']
+        ) {
+            if (variant === 'default' && size === 'icon') {
+                return 'h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90';
+            }
+            if (variant === 'secondary' && size === 'icon') {
+                return 'h-10 w-10 rounded-full bg-secondary text-secondary-foreground hover:bg-secondary/80';
+            }
+            return buttonVariants({ variant, size });
+        }
+
+        const defaultClasses = getDifferentVariantClasses(variant, size);
+
         return (
             <Comp
-                className={cn(buttonVariants({ variant, size, className }))}
+                className={cn(
+                    defaultClasses,
+                    buttonVariants({ variant, size, className })
+                )}
                 ref={ref}
                 {...props}
             />

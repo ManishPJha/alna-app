@@ -1,36 +1,61 @@
-// app/(dashboard)/layout.tsx
+'use client';
+
+// import { AdminNavbar, AdminSidebar } from '@/features/dashboard';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { DashboardSidebar } from '@/components/layout/DashboardSidebar';
-import { Toaster } from '@/components/ui/sonner';
-import { getSession } from '@/features/auth';
-import { redirect } from 'next/navigation';
-import { Suspense } from 'react';
+import { Session } from 'next-auth';
+import { useEffect, useState } from 'react';
 
-export default async function DashboardLayout({
-    children,
-}: {
+interface AdminLayoutProps {
     children: React.ReactNode;
-}) {
-    const session = await getSession();
+    defaultActiveTab?: string;
+}
 
-    if (!session) {
-        redirect('/auth/signin');
-    }
+const AdminLayout = ({
+    children,
+    defaultActiveTab = 'dashboard',
+}: AdminLayoutProps) => {
+    const [activeTab, setActiveTab] = useState(defaultActiveTab);
+    const [currentUser, setCurrentUser] = useState<Session['user'] | undefined>(
+        undefined
+    );
+
+    useEffect(() => {
+        // Simulate fetching user session
+        const fetchUserSession = async () => {
+            const session = await fetch('/api/auth/session').then((res) =>
+                res.json()
+            );
+            setCurrentUser(session.user || null);
+        };
+
+        fetchUserSession();
+    }, []);
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <DashboardSidebar />
-            <div className="lg:pl-64">
-                <DashboardHeader user={session.user} />
-                <main className="py-6">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                        <Suspense fallback={<div>Loading...</div>}>
-                            {children}
-                        </Suspense>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+            {/* Fixed Header */}
+            <DashboardHeader currentUser={currentUser} />
+
+            <div className="flex">
+                {/* Persistent Fixed Sidebar */}
+                <div className="w-64 min-h-screen bg-white shadow-lg border-r border-gray-200 fixed left-0 top-12 pt-20 z-40">
+                    <DashboardSidebar
+                        activeTab={activeTab}
+                        setActiveTab={setActiveTab}
+                        currentUser={currentUser}
+                    />
+                </div>
+
+                {/* Main Content Area with left margin to account for fixed sidebar */}
+                <div className="flex-1 ml-64 pt-20">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        {children}
                     </div>
-                </main>
+                </div>
             </div>
-            <Toaster />
         </div>
     );
-}
+};
+
+export default AdminLayout;

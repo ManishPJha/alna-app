@@ -21,7 +21,7 @@ export default function Error({
 
     return (
         <div className="flex items-center justify-center min-h-[60vh]">
-            <Card className="max-w-md w-full">
+            <Card className="max-w-md w-full bg-secondary-700 ">
                 <CardHeader className="text-center">
                     <div className="mx-auto bg-red-100 p-3 rounded-full w-fit mb-4">
                         <AlertTriangle className="h-8 w-8 text-red-600" />
@@ -31,7 +31,7 @@ export default function Error({
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="text-center space-y-4">
-                    <p className="text-gray-600">
+                    <p className="text-red-200">
                         We encountered an error while loading your page. This
                         might be a temporary issue.
                     </p>
@@ -47,7 +47,7 @@ export default function Error({
                     <div className="flex gap-3 justify-center">
                         <Button
                             onClick={reset}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 bg-red-600 text-white hover:bg-red-700"
                         >
                             <RefreshCw className="h-4 w-4" />
                             Try Again
@@ -55,7 +55,7 @@ export default function Error({
                         <Button
                             variant="outline"
                             onClick={() => router.push('/')}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 border-white text-white hover:bg-white hover:text-primary-600"
                         >
                             <Home className="h-4 w-4" />
                             Go Home

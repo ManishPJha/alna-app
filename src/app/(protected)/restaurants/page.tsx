@@ -108,84 +108,13 @@ export default function RestaurantsPage() {
                         Manage your restaurant locations and settings
                     </p>
                 </div>
-                <Button onClick={() => setIsCreateOpen(true)}>
+                <Button
+                    className="bg-blue-600 text-white hover:bg-blue-700"
+                    onClick={() => setIsCreateOpen(true)}
+                >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Restaurant
                 </Button>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-lg border">
-                    <div className="flex items-center">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                            <div className="w-6 h-6 bg-blue-600 rounded"></div>
-                        </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">
-                                Total Restaurants
-                            </p>
-                            <p className="text-2xl font-bold text-gray-900">
-                                {restaurants.length}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-lg border">
-                    <div className="flex items-center">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                            <div className="w-6 h-6 bg-green-600 rounded"></div>
-                        </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">
-                                Active Menus
-                            </p>
-                            <p className="text-2xl font-bold text-gray-900">
-                                {
-                                    restaurants.filter(
-                                        (r) => (r.menuItemsCount || 0) > 0
-                                    ).length
-                                }
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-lg border">
-                    <div className="flex items-center">
-                        <div className="p-2 bg-yellow-100 rounded-lg">
-                            <div className="w-6 h-6 bg-yellow-600 rounded"></div>
-                        </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">
-                                QR Codes
-                            </p>
-                            <p className="text-2xl font-bold text-gray-900">
-                                {restaurants.reduce(
-                                    (sum, r) => sum + (r.qrCodesCount || 0),
-                                    0
-                                )}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded-lg border">
-                    <div className="flex items-center">
-                        <div className="p-2 bg-purple-100 rounded-lg">
-                            <div className="w-6 h-6 bg-purple-600 rounded"></div>
-                        </div>
-                        <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-600">
-                                Managers
-                            </p>
-                            <p className="text-2xl font-bold text-gray-900">
-                                {restaurants.reduce(
-                                    (sum, r) => sum + (r.managersCount || 0),
-                                    0
-                                )}
-                            </p>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             {/* Restaurants Table */}

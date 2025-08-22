@@ -342,6 +342,14 @@ body {
     animation: modalEnter 0.3s ease forwards;
 }
 
+.text-primary-foreground {
+    color: var(--primary);
+}
+
+.text-secondary-foreground {
+    color: var(--secondary);
+}
+
 @keyframes modalEnter {
     to {
         transform: scale(1);

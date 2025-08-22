@@ -37,18 +37,14 @@ export function WelcomeSection({ user }: WelcomeSectionProps) {
                         </p>
                         <div className="flex space-x-3">
                             <Button
-                                onClick={() =>
-                                    router.push('/dashboard/restaurants')
-                                }
+                                onClick={() => router.push('/restaurants')}
                                 className="bg-white text-blue-600 hover:bg-blue-50"
                             >
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Restaurant
                             </Button>
                             <Button
-                                onClick={() =>
-                                    router.push('/dashboard/settings')
-                                }
+                                onClick={() => router.push('/settings')}
                                 variant="outline"
                                 className="border-white text-white hover:bg-white hover:text-blue-600"
                             >

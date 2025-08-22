@@ -18,13 +18,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Restaurant } from '@/types/api'; // Assuming '@/types/api' defines the Restaurant interface
+import { Restaurant } from '@/types/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { FormProvider, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 // Define the Zod schema for the restaurant form data.
-// Fields with .default() will be treated as non-optional strings in the inferred type.
 const restaurantSchema = z.object({
     name: z.string().min(1, 'Restaurant name is required'),
     email: z
@@ -44,14 +43,9 @@ const restaurantSchema = z.object({
 type RestaurantFormData = z.infer<typeof restaurantSchema>;
 
 interface RestaurantFormProps {
-    // The existing restaurant data, if editing.
-    // Fields here can be optional, which the defaultValues logic handles.
     restaurant?: Restaurant;
-    // Callback function when the form is submitted.
     onSubmit: (data: RestaurantFormData) => void;
-    // Optional callback for cancel button.
     onCancel?: () => void;
-    // Loading state for submit button.
     loading?: boolean;
 }
 
@@ -82,8 +76,7 @@ export function RestaurantForm({
     onCancel,
     loading = false,
 }: RestaurantFormProps) {
-    // Define the default values for the form, ensuring they match RestaurantFormData's type.
-    // Using nullish coalescing (??) provides a fallback if 'restaurant' or its properties are undefined.
+    // Define the default values for the form.
     const defaultFormValues: RestaurantFormData = {
         name: restaurant?.name || '',
         email: restaurant?.email || '',
@@ -92,18 +85,18 @@ export function RestaurantForm({
         description: restaurant?.description || '',
         defaultLanguage: restaurant?.defaultLanguage ?? 'en',
         timezone: restaurant?.timezone ?? 'UTC',
-        themeColor: restaurant?.themeColor ?? '#000000',
+        themeColor: restaurant?.themeColor ?? '#4f46e5',
     };
 
-    // Initialize react-hook-form with the zodResolver and the correctly typed default values.
+    // Initialize react-hook-form.
     const form = useForm<RestaurantFormData>({
         resolver: zodResolver(restaurantSchema),
         defaultValues: defaultFormValues,
     });
 
     return (
-        <Form>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormProvider {...form}>
+            <Form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Restaurant Name Field */}
                 <FormField
                     control={form.control}
@@ -122,7 +115,7 @@ export function RestaurantForm({
                     )}
                 />
 
-                {/* Email and Phone Fields (side-by-side on larger screens) */}
+                {/* Email and Phone Fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
@@ -200,7 +193,7 @@ export function RestaurantForm({
                     )}
                 />
 
-                {/* Language, Timezone, and Theme Color Fields (three columns on larger screens) */}
+                {/* Language, Timezone, and Theme Color Fields */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                         control={form.control}
@@ -279,7 +272,7 @@ export function RestaurantForm({
                                         />
                                         <Input
                                             type="text"
-                                            placeholder="#000000"
+                                            placeholder="#4f46e5"
                                             className="flex-1"
                                             {...field}
                                         />
@@ -310,7 +303,7 @@ export function RestaurantForm({
                             : 'Create Restaurant'}
                     </Button>
                 </div>
-            </form>
-        </Form>
+            </Form>
+        </FormProvider>
     );
 }
