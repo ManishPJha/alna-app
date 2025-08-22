@@ -27,7 +27,7 @@ export interface User {
     id: string;
     name?: string;
     email?: string;
-    role: 'USER' | 'MANAGER' | 'ADMIN';
+    role: 'MANAGER' | 'ADMIN';
     isActive: boolean;
     restaurantId?: string;
     lastLogin?: string;
@@ -65,6 +65,14 @@ export interface MenuItem {
     isAvailable: boolean;
     imageUrl?: string;
     restaurantId: string;
+    calories?: number;
+    isVegetarian?: boolean;
+    isVegan?: boolean;
+    isGlutenFree?: boolean;
+    isSpicy?: boolean;
+    spicyLevel?: number;
+    isBestseller?: boolean;
+    displayOrder?: number;
     createdAt: string;
     updatedAt: string;
 
@@ -99,3 +107,5 @@ export interface ApiError {
     status?: number;
     code?: string;
 }
+
+export type { Menu } from './menu';

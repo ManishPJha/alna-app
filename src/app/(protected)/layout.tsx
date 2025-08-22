@@ -1,6 +1,5 @@
 'use client';
 
-// import { AdminNavbar, AdminSidebar } from '@/features/dashboard';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { DashboardSidebar } from '@/components/layout/DashboardSidebar';
 import { Session } from 'next-auth';
@@ -8,14 +7,9 @@ import { useEffect, useState } from 'react';
 
 interface AdminLayoutProps {
     children: React.ReactNode;
-    defaultActiveTab?: string;
 }
 
-const AdminLayout = ({
-    children,
-    defaultActiveTab = 'dashboard',
-}: AdminLayoutProps) => {
-    const [activeTab, setActiveTab] = useState(defaultActiveTab);
+const AdminLayout = ({ children }: AdminLayoutProps) => {
     const [currentUser, setCurrentUser] = useState<Session['user'] | undefined>(
         undefined
     );
@@ -40,11 +34,7 @@ const AdminLayout = ({
             <div className="flex">
                 {/* Persistent Fixed Sidebar */}
                 <div className="w-64 min-h-screen bg-white shadow-lg border-r border-gray-200 fixed left-0 top-12 pt-20 z-40">
-                    <DashboardSidebar
-                        activeTab={activeTab}
-                        setActiveTab={setActiveTab}
-                        currentUser={currentUser}
-                    />
+                    <DashboardSidebar currentUser={currentUser} />
                 </div>
 
                 {/* Main Content Area with left margin to account for fixed sidebar */}

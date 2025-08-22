@@ -88,6 +88,8 @@ async function getDashboardData(userId: string, userRole: string) {
 }
 
 async function getUserRestaurantIds(userId: string) {
+    if (!userId) return [];
+
     const user = await db.user.findUnique({
         where: { id: userId },
         include: { restaurant: true },

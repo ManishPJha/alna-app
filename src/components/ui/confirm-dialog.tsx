@@ -1,13 +1,13 @@
+import { Button } from '@/components/ui/button';
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { AlertTriangle } from 'lucide-react';
 
 interface ConfirmDialogProps {
     open: boolean;
@@ -33,31 +33,68 @@ export function ConfirmDialog({
     destructive = false,
 }: ConfirmDialogProps) {
     return (
-        <AlertDialog open={open} onOpenChange={onOpenChange}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{title}</AlertDialogTitle>
-                    <AlertDialogDescription>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent
+                className={'sm:max-w-[425px] bg-white text-gray-900'}
+            >
+                <DialogHeader
+                    className={
+                        destructive
+                            ? 'bg-red-50 border-red-100'
+                            : 'bg-indigo-50 border-indigo-100'
+                    }
+                >
+                    <div className="flex items-center space-x-3">
+                        {destructive && (
+                            <div className="bg-red-100 rounded-lg p-2">
+                                <AlertTriangle className="h-5 w-5 text-red-600" />
+                            </div>
+                        )}
+                        <DialogTitle
+                            className={
+                                destructive ? 'text-red-700' : 'text-indigo-700'
+                            }
+                        >
+                            {title}
+                        </DialogTitle>
+                    </div>
+                    <DialogDescription className="text-gray-600 text-left mt-2">
                         {description}
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel disabled={loading}>
+                    </DialogDescription>
+                </DialogHeader>
+
+                <DialogFooter className="bg-gray-50 border-gray-200">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                        disabled={loading}
+                        className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
                         {cancelText}
-                    </AlertDialogCancel>
-                    <AlertDialogAction
+                    </Button>
+                    <Button
+                        type="button"
+                        variant={destructive ? 'destructive' : 'default'}
                         onClick={onConfirm}
                         disabled={loading}
                         className={
                             destructive
-                                ? 'bg-red-600 hover:bg-red-700 focus:ring-red-600'
-                                : ''
+                                ? 'bg-red-600 hover:bg-red-700 text-white'
+                                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
                         }
                     >
-                        {loading ? 'Loading...' : confirmText}
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+                        {loading ? (
+                            <div className="flex items-center">
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                Processing...
+                            </div>
+                        ) : (
+                            confirmText
+                        )}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }

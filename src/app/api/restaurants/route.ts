@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
         const restaurants = await db.restaurant.findMany({
             skip: (page - 1) * limit,
             take: limit,
+            orderBy: { createdAt: 'desc' },
         });
 
         const totalRestaurants = await db.restaurant.count();

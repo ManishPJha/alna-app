@@ -13,6 +13,7 @@
     "db:push": "prisma db push",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
+    "db:seed": "node scripts/seed.js",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,mdx}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,mdx}\" --cache",
     "postinstall": "prisma generate"
@@ -68,6 +69,7 @@
     "eslint-config-next": "15.4.6",
     "prisma": "^6.14.0",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

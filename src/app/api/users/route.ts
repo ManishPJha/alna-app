@@ -1,6 +1,7 @@
 import { getSession } from '@/features/auth';
 import { db } from '@/lib/db';
 import { createServiceContext } from '@/utils/service-utils';
+import bcrypt from 'bcryptjs';
 import { NextRequest, NextResponse } from 'next/server';
 
 const { log } = createServiceContext('UserService');
@@ -20,16 +21,27 @@ export async function GET(request: NextRequest) {
 
         const page = Number(searchParams.get('page')) || 1;
         const limit = Number(searchParams.get('limit')) || 10;
+        const search = searchParams.get('search') || '';
+        // const sortBy = searchParams.get('sortBy') || 'createdAt';
+        // const sortOrder =
+        //     searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
 
         log.info('user GET', { page, limit });
 
         const users = await db.user.findMany({
             skip: (page - 1) * limit,
             take: limit,
-            where: { role: 'MANAGER' },
+            where: {
+                role: 'MANAGER',
+                OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { email: { contains: search, mode: 'insensitive' } },
+                ],
+            },
+            orderBy: { createdAt: 'desc' },
         });
 
-        const totalUsers = await db.user.count();
+        const totalUsers = await db.user.count({ where: { role: 'MANAGER' } });
 
         const pagination = {
             total: totalUsers,
@@ -62,7 +74,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { name, email, restaurantId } = body;
+        const { name, email, restaurantId, password, role, isActive } = body;
 
         if (!name || !email) {
             return NextResponse.json(
@@ -77,10 +89,19 @@ export async function POST(request: NextRequest) {
             data: {
                 name,
                 email,
-                role: 'MANAGER',
+                role: role || 'MANAGER',
                 restaurantId,
+                isActive: isActive ?? true,
             },
         });
+
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await db.user.update({
+                where: { id: user.id },
+                data: { passwordHash: hashedPassword },
+            });
+        }
 
         return NextResponse.json(user);
     } catch (error) {

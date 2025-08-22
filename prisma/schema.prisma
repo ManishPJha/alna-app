@@ -98,6 +98,12 @@ model Restaurant {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
+   // Added these fields for better live preview support
+  menuTheme        Json?             // For storing theme configuration
+  isMenuPublished  Boolean           @default(false)
+  menuVersion      Int               @default(1)
+  lastMenuUpdate   DateTime?
+
   // Direct relationship to users (managers)
   managers         User[]            // Users with MANAGER role and this restaurantId
   qrCodes          QRCode[]
@@ -169,6 +175,10 @@ model MenuCategory {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Added for better UX in live editor
+  isVisible        Boolean           @default(true)
+  iconUrl          String?
+
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   menuItems    MenuItem[]
 
@@ -196,6 +206,11 @@ model MenuItem {
   displayOrder Int       @default(0)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+   // Added for enhanced live preview
+  isVisible        Boolean           @default(true)
+  tags             Json?             // Store flexible tags as JSON for easier management
+  nutritionInfo    Json?             // Optional nutrition data
 
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   category     MenuCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)

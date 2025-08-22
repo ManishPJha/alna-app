@@ -8,6 +8,8 @@ export interface UserFilters {
     isActive?: boolean;
     page?: number;
     limit?: number;
+    sortBy?: 'name' | 'email' | 'createdAt' | 'updatedAt';
+    sortOrder?: 'asc' | 'desc';
 }
 
 export interface UsersResponse {

@@ -46,7 +46,7 @@ export function WelcomeSection({ user }: WelcomeSectionProps) {
                             <Button
                                 onClick={() => router.push('/settings')}
                                 variant="outline"
-                                className="border-white text-white hover:bg-white hover:text-blue-600"
+                                className="text-white hover:bg-white bg-transparent hover:text-blue-600"
                             >
                                 <Settings className="h-4 w-4 mr-2" />
                                 Settings
