@@ -1,5 +1,4 @@
 'use client';
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from '@/components/ui/button';
 import {
@@ -23,10 +22,26 @@ import {
     Wheat,
     X,
 } from 'lucide-react';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Controller, UseFormReturn, useFieldArray } from 'react-hook-form';
 
-// Input Components matching your project style
-const Input = ({
+// Form data interface
+interface MenuFormData {
+    name: string;
+    description: string;
+    restaurantId: string;
+    isActive: boolean;
+    categories: any[];
+    theme: {
+        primaryColor: string;
+        backgroundColor: string;
+        accentColor: string;
+        fontFamily: string;
+    };
+}
+
+// Input Components matching your project style with form integration
+const FormInput = ({
     value,
     onChange,
     placeholder = '',
@@ -35,7 +50,7 @@ const Input = ({
     ...props
 }: {
     value: string | number;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onChange: (value: any) => void;
     placeholder?: string;
     type?: string;
     className?: string;
@@ -44,14 +59,14 @@ const Input = ({
     <input
         type={type}
         value={value}
-        onChange={onChange}
-        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
         className={`w-full border border-gray-300 text-black rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${className}`}
+        placeholder={placeholder}
         {...props}
     />
 );
 
-const Textarea = ({
+const FormTextarea = ({
     value,
     onChange,
     placeholder = '',
@@ -60,7 +75,7 @@ const Textarea = ({
     ...props
 }: {
     value: string;
-    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    onChange: (value: string) => void;
     placeholder?: string;
     rows?: number;
     className?: string;
@@ -68,15 +83,15 @@ const Textarea = ({
 }) => (
     <textarea
         value={value}
-        onChange={onChange}
-        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
         rows={rows}
         className={`w-full border border-gray-300 text-black rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none ${className}`}
+        placeholder={placeholder}
         {...props}
     />
 );
 
-const Checkbox = ({
+const FormCheckbox = ({
     checked,
     onChange,
     label,
@@ -137,7 +152,6 @@ const CardContent = ({
 // Dietary Tags Component
 const DietaryTags = ({ item }: { item: MenuItem }) => {
     const tags = [];
-
     if (item.isVegetarian)
         tags.push({
             label: 'Vegetarian',
@@ -162,7 +176,6 @@ const DietaryTags = ({ item }: { item: MenuItem }) => {
             className: 'bg-red-100 text-red-800 border border-red-200',
             icon: <Flame className="w-3 h-3" />,
         });
-
     return (
         <div className="flex flex-wrap gap-2 mt-3">
             {tags.map((tag, index) => (
@@ -179,13 +192,9 @@ const DietaryTags = ({ item }: { item: MenuItem }) => {
 };
 
 // Menu Preview Component
-const MenuPreview = ({ menu }: { menu: any }) => {
-    const theme = menu.theme || {
-        primaryColor: '#1f2937',
-        backgroundColor: '#f9fafb',
-        accentColor: '#ef4444',
-        fontFamily: 'Inter',
-    };
+const MenuPreview = ({ form }: { form: UseFormReturn<MenuFormData> }) => {
+    const menuData = form.watch();
+    const theme = menuData.theme;
 
     return (
         <div
@@ -202,17 +211,16 @@ const MenuPreview = ({ menu }: { menu: any }) => {
                         className="text-4xl font-bold mb-3"
                         style={{ color: theme.primaryColor }}
                     >
-                        {menu.name || 'Menu Name'}
+                        {menuData.name || 'Menu Name'}
                     </h1>
-                    {menu.description && (
+                    {menuData.description && (
                         <p className="text-lg text-gray-600 leading-relaxed">
-                            {menu.description}
+                            {menuData.description}
                         </p>
                     )}
                 </div>
-
                 {/* Categories */}
-                {menu.categories
+                {menuData.categories
                     ?.filter((cat: any) => cat.isActive)
                     .map((category: any) => (
                         <div key={category.id} className="mb-10">
@@ -229,7 +237,6 @@ const MenuPreview = ({ menu }: { menu: any }) => {
                                     </p>
                                 )}
                             </div>
-
                             <div className="space-y-6">
                                 {category.items
                                     ?.filter((item: any) => item.isAvailable)
@@ -274,9 +281,8 @@ const MenuPreview = ({ menu }: { menu: any }) => {
                             </div>
                         </div>
                     ))}
-
-                {(!menu.categories ||
-                    menu.categories.filter((cat: any) => cat.isActive)
+                {(!menuData.categories ||
+                    menuData.categories.filter((cat: any) => cat.isActive)
                         .length === 0) && (
                     <div className="text-center py-16">
                         <ChefHat className="w-16 h-16 mx-auto mb-4 text-gray-400" />
@@ -297,11 +303,15 @@ const MenuPreview = ({ menu }: { menu: any }) => {
 // Item Editor Component
 const ItemEditor = ({
     item,
-    onUpdate,
+    itemIndex,
+    categoryIndex,
+    form,
     onDelete,
 }: {
     item: any;
-    onUpdate: (updates: Partial<any>) => void;
+    itemIndex: number;
+    categoryIndex: number;
+    form: UseFormReturn<MenuFormData>;
     onDelete: () => void;
 }) => {
     return (
@@ -322,104 +332,132 @@ const ItemEditor = ({
                             <Trash2 className="w-4 h-4 text-red-500" />
                         </Button>
                     </div>
-
                     {/* Basic Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Item Name
                             </label>
-                            <Input
-                                value={item.name || ''}
-                                onChange={(e) =>
-                                    onUpdate({ name: e.target.value })
-                                }
-                                placeholder="Enter delicious item name..."
+                            <Controller
+                                name={`categories.${categoryIndex}.items.${itemIndex}.name`}
+                                control={form.control}
+                                render={({ field }) => (
+                                    <FormInput
+                                        {...field}
+                                        placeholder="Enter delicious item name..."
+                                    />
+                                )}
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Price ($)
                             </label>
-                            <Input
-                                type="number"
-                                value={item.price || 0}
-                                onChange={(e) =>
-                                    onUpdate({
-                                        price: parseFloat(e.target.value) || 0,
-                                    })
-                                }
-                                placeholder="0.00"
-                                step="0.01"
+                            <Controller
+                                name={`categories.${categoryIndex}.items.${itemIndex}.price`}
+                                control={form.control}
+                                render={({ field }) => (
+                                    <FormInput
+                                        {...field}
+                                        type="number"
+                                        placeholder="0.00"
+                                        step="0.01"
+                                        onChange={(value) =>
+                                            field.onChange(
+                                                parseFloat(value) || 0
+                                            )
+                                        }
+                                    />
+                                )}
                             />
                         </div>
                     </div>
-
                     {/* Description */}
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Description
                         </label>
-                        <Textarea
-                            value={item.description || ''}
-                            onChange={(e) =>
-                                onUpdate({ description: e.target.value })
-                            }
-                            placeholder="Describe this amazing dish..."
-                            rows={3}
+                        <Controller
+                            name={`categories.${categoryIndex}.items.${itemIndex}.description`}
+                            control={form.control}
+                            render={({ field }) => (
+                                <FormTextarea
+                                    {...field}
+                                    placeholder="Describe this amazing dish..."
+                                    rows={3}
+                                />
+                            )}
                         />
                     </div>
-
                     {/* Dietary Options */}
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-3">
                             Dietary Options
                         </label>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <Checkbox
-                                id={`veg-${item.id}`}
-                                checked={item.isVegetarian || false}
-                                onChange={(checked) =>
-                                    onUpdate({ isVegetarian: checked })
-                                }
-                                label="Vegetarian"
+                            <Controller
+                                name={`categories.${categoryIndex}.items.${itemIndex}.isVegetarian`}
+                                control={form.control}
+                                render={({ field }) => (
+                                    <FormCheckbox
+                                        id={`veg-${item.id}`}
+                                        checked={field.value || false}
+                                        onChange={field.onChange}
+                                        label="Vegetarian"
+                                    />
+                                )}
                             />
-                            <Checkbox
-                                id={`vegan-${item.id}`}
-                                checked={item.isVegan || false}
-                                onChange={(checked) =>
-                                    onUpdate({ isVegan: checked })
-                                }
-                                label="Vegan"
+                            <Controller
+                                name={`categories.${categoryIndex}.items.${itemIndex}.isVegan`}
+                                control={form.control}
+                                render={({ field }) => (
+                                    <FormCheckbox
+                                        id={`vegan-${item.id}`}
+                                        checked={field.value || false}
+                                        onChange={field.onChange}
+                                        label="Vegan"
+                                    />
+                                )}
                             />
-                            <Checkbox
-                                id={`gf-${item.id}`}
-                                checked={item.isGlutenFree || false}
-                                onChange={(checked) =>
-                                    onUpdate({ isGlutenFree: checked })
-                                }
-                                label="Gluten-Free"
+                            <Controller
+                                name={`categories.${categoryIndex}.items.${itemIndex}.isGlutenFree`}
+                                control={form.control}
+                                render={({ field }) => (
+                                    <FormCheckbox
+                                        id={`gf-${item.id}`}
+                                        checked={field.value || false}
+                                        onChange={field.onChange}
+                                        label="Gluten-Free"
+                                    />
+                                )}
                             />
-                            <Checkbox
-                                id={`spicy-${item.id}`}
-                                checked={item.isSpicy || false}
-                                onChange={(checked) =>
-                                    onUpdate({ isSpicy: checked })
-                                }
-                                label="Spicy"
+                            <Controller
+                                name={`categories.${categoryIndex}.items.${itemIndex}.isSpicy`}
+                                control={form.control}
+                                render={({ field }) => (
+                                    <FormCheckbox
+                                        id={`spicy-${item.id}`}
+                                        checked={field.value || false}
+                                        onChange={field.onChange}
+                                        label="Spicy"
+                                    />
+                                )}
                             />
                         </div>
                     </div>
-
                     {/* Availability */}
                     <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <Checkbox
-                            id={`available-${item.id}`}
-                            checked={item.isAvailable ?? true}
-                            onChange={(checked) =>
-                                onUpdate({ isAvailable: checked })
-                            }
-                            label="Available for ordering"
+                        <Controller
+                            name={`categories.${categoryIndex}.items.${itemIndex}.isAvailable`}
+                            control={form.control}
+                            render={({ field }) => (
+                                <FormCheckbox
+                                    id={`available-${item.id}`}
+                                    checked={field.value ?? true}
+                                    onChange={field.onChange}
+                                    label="Available for ordering"
+                                />
+                            )}
                         />
                         <span
                             className={`text-xs px-3 py-1 rounded-full font-medium ${
@@ -440,20 +478,22 @@ const ItemEditor = ({
 // Category Editor Component
 const CategoryEditor = ({
     category,
-    onUpdate,
+    categoryIndex,
+    form,
     onDeleteCategory,
     onAddItem,
-    onUpdateItem,
-    onDeleteItem,
 }: {
     category: any;
-    onUpdate: (updates: Partial<any>) => void;
+    categoryIndex: number;
+    form: UseFormReturn<MenuFormData>;
     onDeleteCategory: () => void;
     onAddItem: () => void;
-    onUpdateItem: (itemId: string, updates: Partial<any>) => void;
-    onDeleteItem: (itemId: string) => void;
 }) => {
     const [isExpanded, setIsExpanded] = useState(true);
+    const { fields: itemFields, remove: removeItem } = useFieldArray({
+        control: form.control,
+        name: `categories.${categoryIndex}.items`,
+    });
 
     return (
         <Card className="mb-6 hover:shadow-xl transition-all duration-300">
@@ -463,17 +503,21 @@ const CategoryEditor = ({
                         <button
                             onClick={() => setIsExpanded(!isExpanded)}
                             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                            type="button"
                         >
                             <ChefHat className="w-5 h-5" />
                         </button>
                         <div className="flex-1">
-                            <Input
-                                value={category.name || ''}
-                                onChange={(e) =>
-                                    onUpdate({ name: e.target.value })
-                                }
-                                className="bg-white/10 border-white/20 text-white placeholder-white/70 font-semibold text-lg"
-                                placeholder="Category Name"
+                            <Controller
+                                name={`categories.${categoryIndex}.name`}
+                                control={form.control}
+                                render={({ field }) => (
+                                    <FormInput
+                                        {...field}
+                                        className="bg-white/10 border-white/20 text-white placeholder-white/70 font-semibold text-lg"
+                                        placeholder="Category Name"
+                                    />
+                                )}
                             />
                         </div>
                     </div>
@@ -483,6 +527,7 @@ const CategoryEditor = ({
                             size="sm"
                             onClick={onAddItem}
                             className="text-white hover:bg-white/10"
+                            type="button"
                         >
                             <Plus className="w-4 h-4 mr-1" />
                             Add Item
@@ -492,29 +537,31 @@ const CategoryEditor = ({
                             size="sm"
                             onClick={onDeleteCategory}
                             className="text-white hover:bg-red-500/20"
+                            type="button"
                         >
                             <Trash2 className="w-4 h-4" />
                         </Button>
                     </div>
                 </div>
-
                 <div className="mt-3">
-                    <Textarea
-                        value={category.description || ''}
-                        onChange={(e) =>
-                            onUpdate({ description: e.target.value })
-                        }
-                        placeholder="Category description (optional)"
-                        rows={2}
-                        className="bg-white/10 border-white/20 text-white placeholder-white/70"
+                    <Controller
+                        name={`categories.${categoryIndex}.description`}
+                        control={form.control}
+                        render={({ field }) => (
+                            <FormTextarea
+                                {...field}
+                                placeholder="Category description (optional)"
+                                rows={2}
+                                className="bg-white/10 border-white/20 text-white placeholder-white/70"
+                            />
+                        )}
                     />
                 </div>
             </CardHeader>
-
             {isExpanded && (
                 <CardContent className="pt-6">
                     <div className="space-y-4">
-                        {!category.items || category.items.length === 0 ? (
+                        {itemFields.length === 0 ? (
                             <div className="text-center py-12 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
                                 <ChefHat className="w-16 h-16 mx-auto mb-4 text-indigo-400" />
                                 <h3 className="text-lg font-semibold text-indigo-800 mb-2">
@@ -528,28 +575,23 @@ const CategoryEditor = ({
                                     variant="outline"
                                     onClick={onAddItem}
                                     className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                                    type="button"
                                 >
                                     <Plus className="w-4 h-4 mr-2" />
                                     Add First Item
                                 </Button>
                             </div>
                         ) : (
-                            category.items
-                                ?.sort(
-                                    (a: any, b: any) =>
-                                        (a.displayOrder || 0) -
-                                        (b.displayOrder || 0)
-                                )
-                                ?.map((item: any) => (
-                                    <ItemEditor
-                                        key={item.id}
-                                        item={item}
-                                        onUpdate={(updates) =>
-                                            onUpdateItem(item.id, updates)
-                                        }
-                                        onDelete={() => onDeleteItem(item.id)}
-                                    />
-                                ))
+                            itemFields.map((item: any, itemIndex) => (
+                                <ItemEditor
+                                    key={item.id}
+                                    item={item}
+                                    itemIndex={itemIndex}
+                                    categoryIndex={categoryIndex}
+                                    form={form}
+                                    onDelete={() => removeItem(itemIndex)}
+                                />
+                            ))
                         )}
                     </div>
                 </CardContent>
@@ -562,10 +604,11 @@ const CategoryEditor = ({
 interface LiveMenuEditorProps {
     menu?: Menu | null;
     restaurants: Restaurant[];
-    onSave: (menuData: any) => void;
+    onSave: (menuData: MenuFormData) => void;
     onCancel: () => void;
     loading?: boolean;
     mode: 'create' | 'edit';
+    form: UseFormReturn<MenuFormData>;
 }
 
 export default function LiveMenuEditor({
@@ -575,11 +618,27 @@ export default function LiveMenuEditor({
     onCancel,
     loading = false,
     mode,
+    form,
 }: LiveMenuEditorProps) {
-    // Initialize state from existing menu or defaults
-    const [menuData, setMenuData] = useState<any>(() => {
+    // Initialize state with empty defaults first
+    const [menuData, setMenuData] = useState<any>({
+        name: '',
+        description: '',
+        restaurantId: '',
+        isActive: true,
+        categories: [],
+        theme: {
+            primaryColor: '#1f2937',
+            backgroundColor: '#f9fafb',
+            accentColor: '#ef4444',
+            fontFamily: 'Inter',
+        },
+    });
+
+    // THIS IS THE KEY FIX: Sync state when menu prop changes
+    useEffect(() => {
         if (menu && mode === 'edit') {
-            return {
+            setMenuData({
                 name: menu.name || '',
                 description: menu.description || '',
                 restaurantId: menu.restaurantId || '',
@@ -591,30 +650,28 @@ export default function LiveMenuEditor({
                     accentColor: '#ef4444',
                     fontFamily: 'Inter',
                 },
-            };
+            });
         }
-        return {
-            name: '',
-            description: '',
-            restaurantId: '',
-            isActive: true,
-            categories: [],
-            theme: {
-                primaryColor: '#1f2937',
-                backgroundColor: '#f9fafb',
-                accentColor: '#ef4444',
-                fontFamily: 'Inter',
-            },
-        };
-    });
+    }, [menu, mode]);
 
     const [activeTab, setActiveTab] = useState<'content' | 'theme'>('content');
     const [searchTerm, setSearchTerm] = useState('');
 
+    const {
+        fields: categoryFields,
+        append: appendCategory,
+        remove: removeCategory,
+    } = useFieldArray({
+        control: form.control,
+        name: 'categories',
+    });
+
+    const watchedCategories = form.watch('categories');
+
     // Filter categories based on search
     const filteredCategories = useMemo(() => {
-        if (!searchTerm) return menuData.categories;
-        return menuData.categories.filter(
+        if (!searchTerm) return watchedCategories;
+        return watchedCategories.filter(
             (category: any) =>
                 category.name
                     ?.toLowerCase()
@@ -632,7 +689,7 @@ export default function LiveMenuEditor({
                             .includes(searchTerm.toLowerCase())
                 )
         );
-    }, [menuData.categories, searchTerm]);
+    }, [watchedCategories, searchTerm]);
 
     // Category management
     const addCategory = useCallback(() => {
@@ -640,112 +697,43 @@ export default function LiveMenuEditor({
             id: `temp-cat-${Date.now()}`,
             name: 'New Category',
             description: '',
-            displayOrder: menuData.categories.length + 1,
+            displayOrder: watchedCategories.length + 1,
             isActive: true,
             items: [],
         };
-        setMenuData((prev: any) => ({
-            ...prev,
-            categories: [...prev.categories, newCategory],
-        }));
-    }, [menuData.categories.length]);
-
-    const updateCategory = useCallback(
-        (categoryId: string, updates: Partial<any>) => {
-            setMenuData((prev: any) => ({
-                ...prev,
-                categories: prev.categories.map((cat: any) =>
-                    cat.id === categoryId ? { ...cat, ...updates } : cat
-                ),
-            }));
-        },
-        []
-    );
-
-    const deleteCategory = useCallback((categoryId: string) => {
-        setMenuData((prev: any) => ({
-            ...prev,
-            categories: prev.categories.filter(
-                (cat: any) => cat.id !== categoryId
-            ),
-        }));
-    }, []);
+        appendCategory(newCategory);
+    }, [appendCategory, watchedCategories.length]);
 
     // Item management
-    const addItem = useCallback((categoryId: string) => {
-        const newItem = {
-            id: `temp-item-${Date.now()}`,
-            name: 'New Item',
-            description: '',
-            price: 0,
-            isVegetarian: false,
-            isVegan: false,
-            isGlutenFree: false,
-            isSpicy: false,
-            isAvailable: true,
-            displayOrder: 1,
-            categoryId,
-        };
+    const addItemToCategory = useCallback(
+        (categoryIndex: number) => {
+            const newItem = {
+                id: `temp-item-${Date.now()}`,
+                name: 'New Item',
+                description: '',
+                price: 0,
+                isVegetarian: false,
+                isVegan: false,
+                isGlutenFree: false,
+                isSpicy: false,
+                isAvailable: true,
+                displayOrder: 1,
+            };
 
-        setMenuData((prev: any) => ({
-            ...prev,
-            categories: prev.categories.map((cat: any) =>
-                cat.id === categoryId
-                    ? { ...cat, items: [...(cat.items || []), newItem] }
-                    : cat
-            ),
-        }));
-    }, []);
-
-    const updateItem = useCallback(
-        (categoryId: string, itemId: string, updates: Partial<any>) => {
-            setMenuData((prev: any) => ({
-                ...prev,
-                categories: prev.categories.map((cat: any) =>
-                    cat.id === categoryId
-                        ? {
-                              ...cat,
-                              items: (cat.items || []).map((item: any) =>
-                                  item.id === itemId
-                                      ? { ...item, ...updates }
-                                      : item
-                              ),
-                          }
-                        : cat
-                ),
-            }));
+            const currentItems =
+                form.getValues(`categories.${categoryIndex}.items`) || [];
+            form.setValue(`categories.${categoryIndex}.items`, [
+                ...currentItems,
+                newItem,
+            ]);
         },
-        []
+        [form]
     );
 
-    const deleteItem = useCallback((categoryId: string, itemId: string) => {
-        setMenuData((prev: any) => ({
-            ...prev,
-            categories: prev.categories.map((cat: any) =>
-                cat.id === categoryId
-                    ? {
-                          ...cat,
-                          items: (cat.items || []).filter(
-                              (item: any) => item.id !== itemId
-                          ),
-                      }
-                    : cat
-            ),
-        }));
-    }, []);
-
-    // Theme management
-    const updateTheme = useCallback((updates: Partial<any>) => {
-        setMenuData((prev: any) => ({
-            ...prev,
-            theme: { ...prev.theme, ...updates },
-        }));
-    }, []);
-
     // Save handler
-    const handleSave = () => {
-        onSave(menuData);
-    };
+    const handleSave = form.handleSubmit((data) => {
+        onSave(data);
+    });
 
     return (
         <div className="h-full bg-gray-50 flex flex-col">
@@ -763,7 +751,12 @@ export default function LiveMenuEditor({
                         </p>
                     </div>
                     <div className="flex items-center space-x-3">
-                        <Button variant="outline" size="sm" onClick={onCancel}>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={onCancel}
+                            type="button"
+                        >
                             <X className="w-4 h-4 mr-2" />
                             Cancel
                         </Button>
@@ -772,6 +765,7 @@ export default function LiveMenuEditor({
                             className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                             onClick={handleSave}
                             disabled={loading}
+                            type="button"
                         >
                             <Save className="w-4 h-4 mr-2" />
                             {loading ? 'Saving...' : 'Save Menu'}
@@ -781,13 +775,14 @@ export default function LiveMenuEditor({
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex overflow-hidden">
+            <form onSubmit={handleSave} className="flex-1 flex overflow-hidden">
                 {/* Editor Panel */}
                 <div className="w-1/2 border-r border-gray-200 flex flex-col bg-white">
                     {/* Tabs */}
                     <div className="border-b border-gray-200 px-6 py-4 flex-shrink-0">
                         <div className="flex space-x-8">
                             <button
+                                type="button"
                                 onClick={() => setActiveTab('content')}
                                 className={`pb-3 border-b-2 text-sm font-semibold transition-all ${
                                     activeTab === 'content'
@@ -799,6 +794,7 @@ export default function LiveMenuEditor({
                                 Content
                             </button>
                             <button
+                                type="button"
                                 onClick={() => setActiveTab('theme')}
                                 className={`pb-3 border-b-2 text-sm font-semibold transition-all ${
                                     activeTab === 'theme'
@@ -820,16 +816,15 @@ export default function LiveMenuEditor({
                                 <div className="mb-6 space-y-4">
                                     <div className="relative">
                                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                        <Input
+                                        <FormInput
                                             value={searchTerm}
-                                            onChange={(e) =>
-                                                setSearchTerm(e.target.value)
-                                            }
+                                            onChange={setSearchTerm}
                                             placeholder="Search categories and items..."
                                             className="pl-10"
                                         />
                                     </div>
                                     <Button
+                                        type="button"
                                         onClick={addCategory}
                                         className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                                     >
@@ -853,6 +848,7 @@ export default function LiveMenuEditor({
                                             </p>
                                             {!searchTerm && (
                                                 <Button
+                                                    type="button"
                                                     onClick={addCategory}
                                                     className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                                                 >
@@ -862,39 +858,23 @@ export default function LiveMenuEditor({
                                             )}
                                         </div>
                                     ) : (
-                                        filteredCategories.map(
-                                            (category: any) => (
+                                        categoryFields.map(
+                                            (category: any, categoryIndex) => (
                                                 <CategoryEditor
                                                     key={category.id}
                                                     category={category}
-                                                    onUpdate={(updates) =>
-                                                        updateCategory(
-                                                            category.id,
-                                                            updates
-                                                        )
+                                                    categoryIndex={
+                                                        categoryIndex
                                                     }
+                                                    form={form}
                                                     onDeleteCategory={() =>
-                                                        deleteCategory(
-                                                            category.id
+                                                        removeCategory(
+                                                            categoryIndex
                                                         )
                                                     }
                                                     onAddItem={() =>
-                                                        addItem(category.id)
-                                                    }
-                                                    onUpdateItem={(
-                                                        itemId,
-                                                        updates
-                                                    ) =>
-                                                        updateItem(
-                                                            category.id,
-                                                            itemId,
-                                                            updates
-                                                        )
-                                                    }
-                                                    onDeleteItem={(itemId) =>
-                                                        deleteItem(
-                                                            category.id,
-                                                            itemId
+                                                        addItemToCategory(
+                                                            categoryIndex
                                                         )
                                                     }
                                                 />
@@ -921,95 +901,112 @@ export default function LiveMenuEditor({
                                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                                                         Menu Name *
                                                     </label>
-                                                    <Input
-                                                        value={menuData.name}
-                                                        onChange={(e) =>
-                                                            setMenuData(
-                                                                (
-                                                                    prev: any
-                                                                ) => ({
-                                                                    ...prev,
-                                                                    name: e
-                                                                        .target
-                                                                        .value,
-                                                                })
-                                                            )
-                                                        }
-                                                        placeholder="Menu name"
+                                                    <Controller
+                                                        name="name"
+                                                        control={form.control}
+                                                        rules={{
+                                                            required:
+                                                                'Menu name is required',
+                                                        }}
+                                                        render={({
+                                                            field,
+                                                            fieldState,
+                                                        }) => (
+                                                            <div>
+                                                                <FormInput
+                                                                    {...field}
+                                                                    placeholder="Menu name"
+                                                                />
+                                                                {fieldState.error && (
+                                                                    <p className="text-red-500 text-sm mt-1">
+                                                                        {
+                                                                            fieldState
+                                                                                .error
+                                                                                .message
+                                                                        }
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                                                         Description
                                                     </label>
-                                                    <Textarea
-                                                        value={
-                                                            menuData.description ||
-                                                            ''
-                                                        }
-                                                        onChange={(e) =>
-                                                            setMenuData(
-                                                                (
-                                                                    prev: any
-                                                                ) => ({
-                                                                    ...prev,
-                                                                    description:
-                                                                        e.target
-                                                                            .value,
-                                                                })
-                                                            )
-                                                        }
-                                                        placeholder="Brief description of your menu"
-                                                        rows={3}
+                                                    <Controller
+                                                        name="description"
+                                                        control={form.control}
+                                                        render={({ field }) => (
+                                                            <FormTextarea
+                                                                {...field}
+                                                                placeholder="Brief description of your menu"
+                                                                rows={3}
+                                                            />
+                                                        )}
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                                                         Restaurant
                                                     </label>
-                                                    <Select
-                                                        value={
-                                                            menuData.restaurantId
-                                                        }
-                                                        onValueChange={(
-                                                            value
-                                                        ) =>
-                                                            setMenuData(
-                                                                (
-                                                                    prev: any
-                                                                ) => ({
-                                                                    ...prev,
-                                                                    restaurantId:
-                                                                        value,
-                                                                })
-                                                            )
-                                                        }
-                                                    >
-                                                        <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                                                            <SelectValue placeholder="Select restaurant" />
-                                                        </SelectTrigger>
-                                                        <SelectContent className="bg-white border-gray-300">
-                                                            {restaurants.map(
-                                                                (
-                                                                    restaurant
-                                                                ) => (
-                                                                    <SelectItem
-                                                                        key={
-                                                                            restaurant.id
-                                                                        }
-                                                                        value={
-                                                                            restaurant.id
-                                                                        }
-                                                                        className="text-gray-900 hover:bg-indigo-50"
-                                                                    >
+                                                    <Controller
+                                                        name="restaurantId"
+                                                        control={form.control}
+                                                        rules={{
+                                                            required:
+                                                                'Please select a restaurant',
+                                                        }}
+                                                        render={({
+                                                            field,
+                                                            fieldState,
+                                                        }) => (
+                                                            <div>
+                                                                <Select
+                                                                    value={
+                                                                        field.value
+                                                                    }
+                                                                    onValueChange={
+                                                                        field.onChange
+                                                                    }
+                                                                >
+                                                                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                                                                        <SelectValue placeholder="Select restaurant" />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent className="bg-white border-gray-300">
+                                                                        {restaurants.map(
+                                                                            (
+                                                                                restaurant
+                                                                            ) => (
+                                                                                <SelectItem
+                                                                                    key={
+                                                                                        restaurant.id
+                                                                                    }
+                                                                                    value={
+                                                                                        restaurant.id
+                                                                                    }
+                                                                                    className="text-gray-900 hover:bg-indigo-50"
+                                                                                >
+                                                                                    {
+                                                                                        restaurant.name
+                                                                                    }
+                                                                                </SelectItem>
+                                                                            )
+                                                                        )}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                                {fieldState.error && (
+                                                                    <p className="text-red-500 text-sm mt-1">
                                                                         {
-                                                                            restaurant.name
+                                                                            fieldState
+                                                                                .error
+                                                                                .message
                                                                         }
-                                                                    </SelectItem>
-                                                                )
-                                                            )}
-                                                        </SelectContent>
-                                                    </Select>
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    />
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -1028,112 +1025,85 @@ export default function LiveMenuEditor({
                                                     <label className="block text-sm font-semibold text-gray-700 mb-3">
                                                         Primary Color
                                                     </label>
-                                                    <div className="flex items-center space-x-3">
-                                                        <input
-                                                            type="color"
-                                                            value={
-                                                                menuData.theme
-                                                                    .primaryColor
-                                                            }
-                                                            onChange={(e) =>
-                                                                updateTheme({
-                                                                    primaryColor:
-                                                                        e.target
-                                                                            .value,
-                                                                })
-                                                            }
-                                                            className="w-12 h-12 border-2 border-gray-300 rounded-lg cursor-pointer"
-                                                        />
-                                                        <Input
-                                                            value={
-                                                                menuData.theme
-                                                                    .primaryColor
-                                                            }
-                                                            onChange={(e) =>
-                                                                updateTheme({
-                                                                    primaryColor:
-                                                                        e.target
-                                                                            .value,
-                                                                })
-                                                            }
-                                                            placeholder="#000000"
-                                                            className="flex-1"
-                                                        />
-                                                    </div>
+                                                    <Controller
+                                                        name="theme.primaryColor"
+                                                        control={form.control}
+                                                        render={({ field }) => (
+                                                            <div className="flex items-center space-x-3">
+                                                                <input
+                                                                    type="color"
+                                                                    value={
+                                                                        field.value
+                                                                    }
+                                                                    onChange={
+                                                                        field.onChange
+                                                                    }
+                                                                    className="w-12 h-12 border-2 border-gray-300 rounded-lg cursor-pointer"
+                                                                />
+                                                                <FormInput
+                                                                    {...field}
+                                                                    placeholder="#000000"
+                                                                    className="flex-1"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    />
                                                 </div>
                                                 <div>
                                                     <label className="block text-sm font-semibold text-gray-700 mb-3">
                                                         Background Color
                                                     </label>
-                                                    <div className="flex items-center space-x-3">
-                                                        <input
-                                                            type="color"
-                                                            value={
-                                                                menuData.theme
-                                                                    .backgroundColor
-                                                            }
-                                                            onChange={(e) =>
-                                                                updateTheme({
-                                                                    backgroundColor:
-                                                                        e.target
-                                                                            .value,
-                                                                })
-                                                            }
-                                                            className="w-12 h-12 border-2 border-gray-300 rounded-lg cursor-pointer"
-                                                        />
-                                                        <Input
-                                                            value={
-                                                                menuData.theme
-                                                                    .backgroundColor
-                                                            }
-                                                            onChange={(e) =>
-                                                                updateTheme({
-                                                                    backgroundColor:
-                                                                        e.target
-                                                                            .value,
-                                                                })
-                                                            }
-                                                            placeholder="#ffffff"
-                                                            className="flex-1"
-                                                        />
-                                                    </div>
+                                                    <Controller
+                                                        name="theme.backgroundColor"
+                                                        control={form.control}
+                                                        render={({ field }) => (
+                                                            <div className="flex items-center space-x-3">
+                                                                <input
+                                                                    type="color"
+                                                                    value={
+                                                                        field.value
+                                                                    }
+                                                                    onChange={
+                                                                        field.onChange
+                                                                    }
+                                                                    className="w-12 h-12 border-2 border-gray-300 rounded-lg cursor-pointer"
+                                                                />
+                                                                <FormInput
+                                                                    {...field}
+                                                                    placeholder="#ffffff"
+                                                                    className="flex-1"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    />
                                                 </div>
                                                 <div>
                                                     <label className="block text-sm font-semibold text-gray-700 mb-3">
                                                         Accent Color
                                                     </label>
-                                                    <div className="flex items-center space-x-3">
-                                                        <input
-                                                            type="color"
-                                                            value={
-                                                                menuData.theme
-                                                                    .accentColor
-                                                            }
-                                                            onChange={(e) =>
-                                                                updateTheme({
-                                                                    accentColor:
-                                                                        e.target
-                                                                            .value,
-                                                                })
-                                                            }
-                                                            className="w-12 h-12 border-2 border-gray-300 rounded-lg cursor-pointer"
-                                                        />
-                                                        <Input
-                                                            value={
-                                                                menuData.theme
-                                                                    .accentColor
-                                                            }
-                                                            onChange={(e) =>
-                                                                updateTheme({
-                                                                    accentColor:
-                                                                        e.target
-                                                                            .value,
-                                                                })
-                                                            }
-                                                            placeholder="#ff0000"
-                                                            className="flex-1"
-                                                        />
-                                                    </div>
+                                                    <Controller
+                                                        name="theme.accentColor"
+                                                        control={form.control}
+                                                        render={({ field }) => (
+                                                            <div className="flex items-center space-x-3">
+                                                                <input
+                                                                    type="color"
+                                                                    value={
+                                                                        field.value
+                                                                    }
+                                                                    onChange={
+                                                                        field.onChange
+                                                                    }
+                                                                    className="w-12 h-12 border-2 border-gray-300 rounded-lg cursor-pointer"
+                                                                />
+                                                                <FormInput
+                                                                    {...field}
+                                                                    placeholder="#ff0000"
+                                                                    className="flex-1"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    />
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -1151,39 +1121,37 @@ export default function LiveMenuEditor({
                                                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                                                     Font Family
                                                 </label>
-                                                <select
-                                                    value={
-                                                        menuData.theme
-                                                            .fontFamily
-                                                    }
-                                                    onChange={(e) =>
-                                                        updateTheme({
-                                                            fontFamily:
-                                                                e.target.value,
-                                                        })
-                                                    }
-                                                    className="w-full border border-gray-300 text-black rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                                >
-                                                    <option value="Inter">
-                                                        Inter (Modern
-                                                        Sans-serif)
-                                                    </option>
-                                                    <option value="Georgia">
-                                                        Georgia (Classic Serif)
-                                                    </option>
-                                                    <option value="Playfair Display">
-                                                        Playfair Display
-                                                        (Elegant Serif)
-                                                    </option>
-                                                    <option value="Roboto">
-                                                        Roboto (Clean
-                                                        Sans-serif)
-                                                    </option>
-                                                    <option value="Merriweather">
-                                                        Merriweather (Readable
-                                                        Serif)
-                                                    </option>
-                                                </select>
+                                                <Controller
+                                                    name="theme.fontFamily"
+                                                    control={form.control}
+                                                    render={({ field }) => (
+                                                        <select
+                                                            {...field}
+                                                            className="w-full border border-gray-300 text-black rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                                        >
+                                                            <option value="Inter">
+                                                                Inter (Modern
+                                                                Sans-serif)
+                                                            </option>
+                                                            <option value="Georgia">
+                                                                Georgia (Classic
+                                                                Serif)
+                                                            </option>
+                                                            <option value="Playfair Display">
+                                                                Playfair Display
+                                                                (Elegant Serif)
+                                                            </option>
+                                                            <option value="Roboto">
+                                                                Roboto (Clean
+                                                                Sans-serif)
+                                                            </option>
+                                                            <option value="Merriweather">
+                                                                Merriweather
+                                                                (Readable Serif)
+                                                            </option>
+                                                        </select>
+                                                    )}
+                                                />
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -1209,10 +1177,10 @@ export default function LiveMenuEditor({
                         </div>
                     </div>
                     <div className="flex-1 overflow-hidden p-4">
-                        <MenuPreview menu={menuData} />
+                        <MenuPreview form={form} />
                     </div>
                 </div>
-            </div>
+            </form>
         </div>
     );
 }

@@ -9,34 +9,34 @@ export interface MenuTheme {
     fontFamily: string;
 }
 
-export interface MenuItem {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    imageUrl?: string;
-    isVegetarian: boolean;
-    isVegan: boolean;
-    isGlutenFree: boolean;
-    isSpicy: boolean;
-    isAvailable: boolean;
-    displayOrder: number;
-    categoryId: string;
-    createdAt?: string;
-    updatedAt?: string;
-}
+// export interface MenuItem {
+//     id: string;
+//     name: string;
+//     description: string;
+//     price: number;
+//     imageUrl?: string;
+//     isVegetarian: boolean;
+//     isVegan: boolean;
+//     isGlutenFree: boolean;
+//     isSpicy: boolean;
+//     isAvailable: boolean;
+//     displayOrder: number;
+//     categoryId: string;
+//     createdAt?: string;
+//     updatedAt?: string;
+// }
 
-export interface MenuCategory {
-    id: string;
-    name: string;
-    description?: string;
-    displayOrder: number;
-    isActive: boolean;
-    menuId: string;
-    items: MenuItem[];
-    createdAt?: string;
-    updatedAt?: string;
-}
+// export interface MenuCategory {
+//     id: string;
+//     name: string;
+//     description?: string;
+//     displayOrder: number;
+//     isActive: boolean;
+//     menuId: string;
+//     items: MenuItem[];
+//     createdAt?: string;
+//     updatedAt?: string;
+// }
 
 export interface Menu {
     id: string;
@@ -55,6 +55,88 @@ export interface Menu {
 export interface RestaurantWithMenus extends Restaurant {
     menus: Menu[];
 }
+
+export interface MenuFormData {
+    name: string;
+    description: string;
+    restaurantId: string;
+    isActive: boolean;
+    categories: MenuCategory[];
+    theme: MenuTheme;
+}
+
+export interface MenuCategory {
+    id: string;
+    name: string;
+    description: string;
+    displayOrder: number;
+    isActive: boolean;
+    items: MenuItem[];
+}
+
+export interface MenuItem {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    isVegetarian: boolean;
+    isVegan: boolean;
+    isGlutenFree: boolean;
+    isSpicy: boolean;
+    isAvailable: boolean;
+    displayOrder: number;
+    categoryId?: string;
+}
+
+export interface MenuTheme {
+    primaryColor: string;
+    backgroundColor: string;
+    accentColor: string;
+    fontFamily: string;
+}
+
+// Default values utility
+export const DEFAULT_THEME: MenuTheme = {
+    primaryColor: '#1f2937',
+    backgroundColor: '#f9fafb',
+    accentColor: '#ef4444',
+    fontFamily: 'Inter',
+};
+
+export const getDefaultMenuFormData = (): MenuFormData => ({
+    name: '',
+    description: '',
+    restaurantId: '',
+    isActive: true,
+    categories: [],
+    theme: DEFAULT_THEME,
+});
+
+export const createNewCategory = (order: number): MenuCategory => ({
+    id: `temp-cat-${Date.now()}`,
+    name: 'New Category',
+    description: '',
+    displayOrder: order,
+    isActive: true,
+    items: [],
+});
+
+export const createNewMenuItem = (
+    categoryId: string,
+    order: number
+): MenuItem => ({
+    id: `temp-item-${Date.now()}`,
+    name: 'New Item',
+    description: '',
+    price: 0,
+    isVegetarian: false,
+    isVegan: false,
+    isGlutenFree: false,
+    isSpicy: false,
+    isAvailable: true,
+    displayOrder: order,
+    categoryId,
+});
 
 // import { z } from 'zod';
 

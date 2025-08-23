@@ -1,25 +1,28 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
-
-import { LiveMenuEditor } from '@/features/menu';
+import { MenuEditor } from '@/features/menu';
+import { useMenuForm } from '@/hooks/menus/useMenuForm';
 import { useCreateMenu } from '@/hooks/menus/useMenus';
 import { useRestaurants } from '@/hooks/restaurants/useRestaurants';
-import { ArrowLeft } from 'lucide-react';
+import { MenuFormData } from '@/types/menu';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function CreateMenuPage() {
     const router = useRouter();
     const createMutation = useCreateMenu();
-    const { data: restaurantsData } = useRestaurants();
-
+    const { data: restaurantsData, isLoading: restaurantsLoading } =
+        useRestaurants();
     const restaurants = restaurantsData?.restaurants || [];
 
-    const handleSave = async (menuData: any) => {
+    const form = useMenuForm(null, 'create');
+
+    const handleSave = async (data: MenuFormData) => {
         try {
-            await createMutation.mutateAsync(menuData);
+            await createMutation.mutateAsync(data);
             router.push('/menus');
         } catch (error) {
-            // Error handled by mutation
+            console.error('Failed to create menu:', error);
+            // You can add toast notification here
         }
     };
 
@@ -27,28 +30,38 @@ export default function CreateMenuPage() {
         router.push('/menus');
     };
 
+    // Show loading state while restaurants are loading
+    if (restaurantsLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-gray-50">
+                <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-indigo-600" />
+                    <p className="text-gray-600">Loading restaurants...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Breadcrumb Navigation */}
+        <div className="h-screen bg-gray-50">
             <div className="bg-white border-b border-gray-200 px-6 py-4">
-                <div className="flex items-center space-x-4">
+                <nav className="flex items-center space-x-4 text-sm">
                     <button
                         onClick={() => router.push('/menus')}
                         className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
                     >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        <ArrowLeft className="w-4 h-4 mr-2" />
                         Back to Menus
                     </button>
                     <span className="text-gray-400">/</span>
                     <span className="text-gray-900 font-semibold">
                         Create New Menu
                     </span>
-                </div>
+                </nav>
             </div>
 
-            {/* Editor */}
-            <LiveMenuEditor
-                menu={null}
+            <MenuEditor
+                form={form}
                 restaurants={restaurants}
                 onSave={handleSave}
                 onCancel={handleCancel}
