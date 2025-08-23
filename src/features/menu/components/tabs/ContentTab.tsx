@@ -4,8 +4,8 @@ import { MenuFormData } from '@/types/menu';
 import { ChefHat, Plus, Search } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
-import { CategoryEditor } from './CategoryEditor';
-import { FormInput } from './FormInput';
+import { CategoryEditor } from '../CategoryEditor';
+import { FormInput } from '../FormInput';
 
 interface ContentTabProps {
     form: UseFormReturn<MenuFormData>;

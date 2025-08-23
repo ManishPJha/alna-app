@@ -3,13 +3,24 @@ import { Button } from '@/components/ui/button';
 import { Restaurant } from '@/types/api';
 import { MenuFormData } from '@/types/menu';
 import { validateBeforeSubmit, ValidationError } from '@/utils/menuValidation';
-import { AlertCircle, ChefHat, Globe, Palette, Save, X } from 'lucide-react';
+import {
+    AlertCircle,
+    ChefHat,
+    Globe,
+    HelpCircle,
+    Palette,
+    QrCode,
+    Save,
+    X,
+} from 'lucide-react';
 import { useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { toast } from 'sonner';
-import { ContentTab } from './ContentTab';
 import { MenuPreview } from './MenuPreview';
-import { SettingsTab } from './SettingsTab';
+import { ContentTab } from './tabs/ContentTab';
+import { FAQTab } from './tabs/FAQTab';
+import { QRCodeTab } from './tabs/QRCodeTab';
+import { SettingsTab } from './tabs/SettingsTab';
 
 interface MenuEditorProps {
     form: UseFormReturn<MenuFormData>;
@@ -88,9 +99,9 @@ export default function MenuEditor({
     loading = false,
     mode,
 }: MenuEditorProps) {
-    const [activeTab, setActiveTab] = useState<'content' | 'settings'>(
-        'settings'
-    );
+    const [activeTab, setActiveTab] = useState<
+        'content' | 'settings' | 'faq' | 'qrcode'
+    >('settings');
     const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
         []
     );
@@ -310,9 +321,6 @@ export default function MenuEditor({
                                 >
                                     <ChefHat className="w-4 h-4 inline mr-2" />
                                     Content
-                                    {!hasCategories && (
-                                        <span className="ml-2 w-2 h-2 bg-yellow-500 rounded-full inline-block"></span>
-                                    )}
                                 </button>
                                 <button
                                     type="button"
@@ -325,9 +333,30 @@ export default function MenuEditor({
                                 >
                                     <Palette className="w-4 h-4 inline mr-2" />
                                     Settings
-                                    {!hasBasicInfo && (
-                                        <span className="ml-2 w-2 h-2 bg-red-500 rounded-full inline-block"></span>
-                                    )}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('faq')}
+                                    className={`pb-3 border-b-2 text-sm font-semibold transition-all ${
+                                        activeTab === 'faq'
+                                            ? 'border-indigo-500 text-indigo-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <HelpCircle className="w-4 h-4 inline mr-2" />
+                                    FAQs
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('qrcode')}
+                                    className={`pb-3 border-b-2 text-sm font-semibold transition-all ${
+                                        activeTab === 'qrcode'
+                                            ? 'border-indigo-500 text-indigo-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <QrCode className="w-4 h-4 inline mr-2" />
+                                    QR Code
                                 </button>
                             </div>
                         </div>
@@ -342,6 +371,10 @@ export default function MenuEditor({
                                     form={form}
                                     restaurants={restaurants}
                                 />
+                            )}
+                            {activeTab === 'faq' && <FAQTab form={form} />}
+                            {activeTab === 'qrcode' && (
+                                <QRCodeTab form={form} />
                             )}
                         </div>
                     </div>

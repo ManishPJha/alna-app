@@ -9,7 +9,7 @@ import {
 import { Restaurant } from '@/types/api';
 import { MenuFormData } from '@/types/menu';
 import { Controller, UseFormReturn } from 'react-hook-form';
-import { FormInput, FormTextarea } from './FormInput';
+import { FormInput, FormTextarea } from '../FormInput';
 
 interface SettingsTabProps {
     form: UseFormReturn<MenuFormData>;
