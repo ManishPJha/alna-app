@@ -1,7 +1,5 @@
-import { RestaurantDetailsView } from '@/components/restaurants/restaurant-details-view';
-import { authConfig } from '@/lib/auth';
+// import { RestaurantDetailsView } from '@/components/restaurants/restaurant-details-view';
 import { db } from '@/lib/db';
-import { getServerSession } from 'next-auth';
 import { notFound } from 'next/navigation';
 
 interface RestaurantPageProps {
@@ -57,21 +55,15 @@ async function getRestaurant(id: string, userId: string, userRole: string) {
 }
 
 export default async function RestaurantPage({ params }: RestaurantPageProps) {
-    const session = await getServerSession(authConfig);
-
-    if (!session) {
-        notFound();
-    }
-
-    const restaurant = await getRestaurant(
-        params.id,
-        session.user.id,
-        session.user.role
-    );
+    // const restaurant = await getRestaurant(
+    //     params.id,
+    //     session.user.id,
+    //     session.user.role
+    // );
 
     return (
         <div className="space-y-6">
-            <RestaurantDetailsView restaurant={restaurant} />
+            {/* <RestaurantDetailsView restaurant={restaurant} /> */}
         </div>
     );
 }
