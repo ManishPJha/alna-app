@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 interface FormInputProps {
     value: string | number;
     onChange: (value: any) => void;

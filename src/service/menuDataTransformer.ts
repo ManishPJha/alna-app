@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { MenuFormData, getDefaultMenuFormData } from '@/types/menu';
 
 export class MenuDataTransformer {

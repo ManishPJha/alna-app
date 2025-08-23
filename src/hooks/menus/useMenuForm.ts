@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Menu } from '@/types/api';
 import { MenuFormData, getDefaultMenuFormData } from '@/types/menu';
 import { useEffect } from 'react';

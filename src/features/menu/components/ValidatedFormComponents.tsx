@@ -11,6 +11,7 @@ interface ValidatedInputProps {
     maxLength?: number;
     className?: string;
     step?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rules?: any;
 }
 

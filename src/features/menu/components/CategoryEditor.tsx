@@ -133,6 +133,7 @@ export function CategoryEditor({
                                 </Button>
                             </div>
                         ) : (
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             itemFields.map((item: any, itemIndex) => (
                                 <ItemEditor
                                     key={item.id}

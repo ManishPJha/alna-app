@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { MenuFormData, MenuItem } from '@/types/menu';
 import { ChefHat, Flame, Leaf, Wheat } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';

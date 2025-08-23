@@ -122,6 +122,7 @@ export default function MenuEditor({
             validation.errors.forEach((error) => {
                 if (error.field.includes('.')) {
                     // Handle nested field errors
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     form.setError(error.field as any, {
                         type: 'validation',
                         message: error.message,

@@ -90,8 +90,8 @@ export default function EditMenuPage() {
                             Menu not found
                         </h2>
                         <p className="text-gray-600 mb-6">
-                            The menu you're looking for doesn't exist or has
-                            been deleted.
+                            The menu you&apos;re looking for doesn&apos;t exist
+                            or has been deleted.
                         </p>
                         <button
                             onClick={() => router.push('/menus')}

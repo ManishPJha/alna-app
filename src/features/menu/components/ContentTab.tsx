@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from '@/components/ui/button';
 import { MenuFormData } from '@/types/menu';
 import { ChefHat, Plus, Search } from 'lucide-react';
