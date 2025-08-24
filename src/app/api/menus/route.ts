@@ -2,9 +2,22 @@
 import { getSession } from '@/features/auth';
 import { db } from '@/lib/db';
 import { createServiceContext } from '@/utils/service-utils';
+import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 const { log } = createServiceContext('MenuService');
+
+// Define the type for restaurant with includes
+type RestaurantWithRelations = Prisma.RestaurantGetPayload<{
+    include: {
+        categories: {
+            include: {
+                menuItems: true;
+            };
+        };
+        faqs: true;
+    };
+}>;
 
 export async function GET(request: NextRequest) {
     try {
@@ -18,95 +31,109 @@ export async function GET(request: NextRequest) {
         }
 
         const searchParams = request.nextUrl.searchParams;
-
         const page = Number(searchParams.get('page')) || 1;
         const limit = Number(searchParams.get('limit')) || 10;
+        const restaurantId = searchParams.get('restaurantId');
 
-        log.info('menu GET', { page, limit });
+        log.info('menu GET', { page, limit, restaurantId });
 
-        const menus = await db.menuItem.findMany({
-            skip: (page - 1) * limit,
-            take: limit,
-            orderBy: { createdAt: 'desc' },
-            include: {
-                category: {
-                    include: {
-                        restaurant: true,
+        // Build the query with proper typing
+        const whereClause = restaurantId ? { id: restaurantId } : {};
+
+        const restaurants: RestaurantWithRelations[] =
+            await db.restaurant.findMany({
+                where: whereClause,
+                skip: (page - 1) * limit,
+                take: limit,
+                orderBy: { updatedAt: 'desc' },
+                include: {
+                    categories: {
+                        orderBy: { displayOrder: 'asc' },
+                        include: {
+                            menuItems: {
+                                orderBy: { displayOrder: 'asc' },
+                            },
+                        },
+                    },
+                    faqs: {
+                        where: { isActive: true },
+                        orderBy: { createdAt: 'desc' },
                     },
                 },
-            },
+            });
+
+        const totalRestaurants = await db.restaurant.count({
+            where: whereClause,
         });
 
-        const totalMenus = await db.menuItem.count();
+        // Transform restaurants into menu format
+        const menus = restaurants.map((restaurant) => ({
+            id: `menu-${restaurant.id}`,
+            name: `${restaurant.name} Menu`,
+            description: restaurant.description,
+            restaurantId: restaurant.id,
+            isActive: restaurant.isMenuPublished,
+            restaurant: {
+                id: restaurant.id,
+                name: restaurant.name,
+                description: restaurant.description,
+                menuTheme: restaurant.menuTheme,
+            },
+            categories: restaurant.categories.map((category) => ({
+                id: category.id,
+                name: category.name,
+                description: category.description,
+                displayOrder: category.displayOrder,
+                isActive: category.isActive,
+                items: category.menuItems.map((item) => ({
+                    id: item.id,
+                    name: item.name,
+                    description: item.description,
+                    price: parseFloat(item.price.toString()), // Convert Decimal to number
+                    isVegetarian: item.isVegetarian,
+                    isVegan: item.isVegan,
+                    isGlutenFree: item.isGlutenFree,
+                    isSpicy: item.isSpicy,
+                    isAvailable: item.isAvailable,
+                    displayOrder: item.displayOrder,
+                    categoryId: item.categoryId,
+                })),
+            })),
+            faqs: restaurant.faqs.map((faq) => ({
+                id: faq.id,
+                question: faq.question,
+                answer: faq.answer,
+            })),
+            theme: restaurant.menuTheme || {
+                primaryColor: '#1f2937',
+                backgroundColor: '#f9fafb',
+                accentColor: '#ef4444',
+                fontFamily: 'Inter',
+            },
+            createdAt: restaurant.createdAt,
+            updatedAt: restaurant.updatedAt,
+        }));
 
         const pagination = {
-            total: totalMenus,
+            total: totalRestaurants,
             page,
             limit,
-            totalPages: Math.ceil(totalMenus / limit),
-            hasMore: page < Math.ceil(totalMenus / limit),
+            totalPages: Math.ceil(totalRestaurants / limit),
+            hasMore: page < Math.ceil(totalRestaurants / limit),
         };
 
-        return NextResponse.json({ menus, pagination });
+        return NextResponse.json({
+            data: { menus, pagination },
+            success: true,
+        });
     } catch (error) {
         log.error('menu GET error', error);
-
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }
         );
     }
 }
-
-// {
-//   "name": "Spice Route Houston",
-//   "description": "Spice Route Houston Foods - Gives you a real taste of Spanish traditional foods. ",
-//   "restaurantId": "1095c3ce-2620-4249-91d0-275f53f7fe27",
-//   "isActive": true,
-//   "categories": [
-//     {
-//       "id": "temp-cat-1755863258816",
-//       "name": "Chinese",
-//       "description": "chinese food items",
-//       "displayOrder": 1,
-//       "isActive": true,
-//       "items": [
-//         {
-//           "id": "temp-item-1755863290176",
-//           "name": "Noodles",
-//           "description": "Hot spicy noodles",
-//           "price": 90,
-//           "isVegetarian": true,
-//           "isVegan": false,
-//           "isGlutenFree": false,
-//           "isSpicy": true,
-//           "isAvailable": true,
-//           "displayOrder": 1,
-//           "categoryId": "temp-cat-1755863258816"
-//         },
-//         {
-//           "id": "temp-item-1755863336527",
-//           "name": "Singapoori Rice",
-//           "description": "The best seller in spices.",
-//           "price": 120,
-//           "isVegetarian": false,
-//           "isVegan": true,
-//           "isGlutenFree": false,
-//           "isSpicy": true,
-//           "isAvailable": true,
-//           "displayOrder": 1,
-//           "categoryId": "temp-cat-1755863258816"
-//         }
-//       ]
-//     }
-//   ],
-//   "theme": {
-//     "primaryColor": "#191eb8",
-//     "backgroundColor": "#f9fafb",
-//     "accentColor": "#6734df",
-//     "fontFamily": "Inter"
-//   }
-// }
 
 export async function POST(request: NextRequest) {
     try {
@@ -120,117 +147,227 @@ export async function POST(request: NextRequest) {
         }
 
         const data = await request.json();
+        const {
+            name,
+            description,
+            restaurantId,
+            isActive,
+            categories = [],
+            faqs = [],
+            theme,
+        } = data;
 
-        const { name, description, restaurantId, isActive, categories, theme } =
-            data;
+        // Enhanced validation
+        const validationErrors = [];
+        if (!name || name.trim() === '') {
+            validationErrors.push('Menu name is required');
+        }
+        if (!restaurantId || restaurantId.trim() === '') {
+            validationErrors.push('Restaurant selection is required');
+        }
 
-        if (!name || !restaurantId) {
+        if (validationErrors.length > 0) {
             return NextResponse.json(
-                { error: 'name and restaurantId are required' },
+                {
+                    error: 'Validation failed',
+                    details: validationErrors,
+                    success: false,
+                },
                 { status: 400 }
             );
         }
 
-        log.info('menu POST', { name, restaurantId });
-
-        const categoriesArray = Array.isArray(categories) ? categories : [];
-
-        // create categories and items in a nested create
-        // but for simplicity, we will just create a menu item here
-        // and handle categories and items separately
-
-        const result = await db.$transaction(async (prisma) => {
-            // create categories first
-            const createdCategories = await Promise.all(
-                categoriesArray.map((category: any) =>
-                    prisma.menuCategory.create({
-                        data: {
-                            name: category.name,
-                            description: category.description,
-                            displayOrder: category.displayOrder,
-                            isActive: category.isActive,
-                            restaurantId,
-                        },
-                    })
-                )
-            );
-
-            // then create items for each category
-            for (let i = 0; i < categoriesArray.length; i++) {
-                const category = categoriesArray[i];
-                const createdCategory = createdCategories[i];
-
-                if (category.items && Array.isArray(category.items)) {
-                    await Promise.all(
-                        category.items.map((item: any) =>
-                            prisma.menuItem.create({
-                                data: {
-                                    name: item.name,
-                                    description: item.description,
-                                    price: item.price || 0,
-                                    isVegetarian: item.isVegetarian || false,
-                                    isVegan: item.isVegan || false,
-                                    isGlutenFree: item.isGlutenFree || false,
-                                    isSpicy: item.isSpicy || false,
-                                    isAvailable: item.isAvailable || true,
-                                    spiceLevel: item.spicyLevel || 0,
-                                    isBestseller: item.isBestseller || false,
-                                    displayOrder: item.displayOrder || 0,
-                                    restaurantId,
-                                    categoryId: createdCategory.id,
-                                },
-                            })
-                        )
-                    );
-                }
-            }
+        // Verify restaurant exists
+        const restaurant = await db.restaurant.findUnique({
+            where: { id: restaurantId },
         });
 
-        // const newMenu = await db.menuItem.create({
-        //     data: {
-        //         name,
-        //         description,
-        //         restaurantId,
-        //         price: 0,
-        //         categoryId: '',
+        if (!restaurant) {
+            return NextResponse.json(
+                { error: 'Restaurant not found', success: false },
+                { status: 404 }
+            );
+        }
 
-        //         // category: {
-        //         //     create: categories.map((category: any) => ({
-        //         //         name: category.name,
-        //         //         description: category.description,
-        //         //         displayOrder: category.displayOrder,
-        //         //         isActive: category.isActive,
-        //         //         items: {
-        //         //             create: category.items.map((item: any) => ({
-        //         //                 name: item.name,
-        //         //                 description: item.description,
-        //         //                 price: item.price,
-        //         //                 isVegetarian: item.isVegetarian,
-        //         //                 isVegan: item.isVegan,
-        //         //                 isGlutenFree: item.isGlutenFree,
-        //         //                 isSpicy: item.isSpicy,
-        //         //                 isAvailable: item.isAvailable,
-        //         //                 displayOrder: item.displayOrder,
-        //         //             })),
-        //         //         },
-        //         //     })),
-        //         // },
-        //         // ...data,
-        //     },
-        // });
+        log.info('Creating menu', {
+            name,
+            restaurantId,
+            categoryCount: categories.length,
+            faqCount: faqs.length,
+        });
+
+        const result = await db.$transaction(async (prisma) => {
+            // Update restaurant with menu info and theme
+            const updatedRestaurant = await prisma.restaurant.update({
+                where: { id: restaurantId },
+                data: {
+                    description: description || restaurant.description,
+                    menuTheme: theme,
+                    isMenuPublished: isActive !== false,
+                    menuVersion: restaurant.menuVersion + 1,
+                    lastMenuUpdate: new Date(),
+                },
+            });
+
+            // Clear existing data first (simpler approach)
+            await prisma.menuItem.deleteMany({
+                where: { restaurantId },
+            });
+            await prisma.menuCategory.deleteMany({
+                where: { restaurantId },
+            });
+            await prisma.fAQ.deleteMany({
+                where: { restaurantId },
+            });
+
+            // Create categories
+            const createdCategories = [];
+            for (const category of categories) {
+                const createdCategory = await prisma.menuCategory.create({
+                    data: {
+                        name: category.name,
+                        description: category.description || '',
+                        displayOrder: category.displayOrder || 0,
+                        isActive: category.isActive !== false,
+                        isVisible: true,
+                        restaurantId,
+                    },
+                });
+                createdCategories.push({
+                    original: category,
+                    created: createdCategory,
+                });
+            }
+
+            // Create menu items
+            const createdItems = [];
+            for (const {
+                original: category,
+                created: createdCategory,
+            } of createdCategories) {
+                if (category.items && Array.isArray(category.items)) {
+                    for (const item of category.items) {
+                        const createdItem = await prisma.menuItem.create({
+                            data: {
+                                name: item.name,
+                                description: item.description || '',
+                                price: new Prisma.Decimal(item.price || 0),
+                                isVegetarian: item.isVegetarian || false,
+                                isVegan: item.isVegan || false,
+                                isGlutenFree: item.isGlutenFree || false,
+                                isSpicy: item.isSpicy || false,
+                                isAvailable: item.isAvailable !== false,
+                                spiceLevel: item.spiceLevel || 0,
+                                isBestseller: item.isBestseller || false,
+                                displayOrder: item.displayOrder || 0,
+                                isVisible: true,
+                                restaurantId,
+                                categoryId: createdCategory.id,
+                            },
+                        });
+                        createdItems.push(createdItem);
+                    }
+                }
+            }
+
+            // Create FAQs
+            const createdFaqs = [];
+            if (faqs && Array.isArray(faqs)) {
+                for (const faq of faqs) {
+                    if (faq.question && faq.answer) {
+                        const createdFaq = await prisma.fAQ.create({
+                            data: {
+                                question: faq.question,
+                                answer: faq.answer,
+                                restaurantId,
+                                isActive: true,
+                            },
+                        });
+                        createdFaqs.push(createdFaq);
+                    }
+                }
+            }
+
+            return {
+                restaurant: updatedRestaurant,
+                categories: createdCategories.map((c) => c.created),
+                items: createdItems,
+                faqs: createdFaqs,
+                stats: {
+                    categoriesCreated: createdCategories.length,
+                    itemsCreated: createdItems.length,
+                    faqsCreated: createdFaqs.length,
+                },
+            };
+        });
+
+        // Return the created menu in the expected format
+        const createdMenu = {
+            id: `menu-${restaurantId}`,
+            name: name,
+            description: description,
+            restaurantId: restaurantId,
+            isActive: isActive,
+            categories: result.categories.map((cat) => {
+                const originalCategory = categories.find(
+                    (c: any) => c.name === cat.name
+                );
+                return {
+                    id: cat.id,
+                    name: cat.name,
+                    description: cat.description,
+                    displayOrder: cat.displayOrder,
+                    isActive: cat.isActive,
+                    items: result.items
+                        .filter((item) => item.categoryId === cat.id)
+                        .map((item) => ({
+                            id: item.id,
+                            name: item.name,
+                            description: item.description,
+                            price: parseFloat(item.price.toString()),
+                            isVegetarian: item.isVegetarian,
+                            isVegan: item.isVegan,
+                            isGlutenFree: item.isGlutenFree,
+                            isSpicy: item.isSpicy,
+                            isAvailable: item.isAvailable,
+                            displayOrder: item.displayOrder,
+                            categoryId: item.categoryId,
+                        })),
+                };
+            }),
+            faqs: result.faqs.map((faq) => ({
+                id: faq.id,
+                question: faq.question,
+                answer: faq.answer,
+            })),
+            theme: theme,
+            restaurant: {
+                id: result.restaurant.id,
+                name: result.restaurant.name,
+                menuTheme: result.restaurant.menuTheme,
+            },
+        };
 
         return NextResponse.json(
             {
+                success: true,
                 message: 'Menu created successfully',
-                menu: result,
+                data: createdMenu,
+                stats: result.stats,
             },
             { status: 201 }
         );
     } catch (error) {
         log.error('menu POST error', error);
-
         return NextResponse.json(
-            { error: 'Internal server error' },
+            {
+                error: 'Internal server error',
+                success: false,
+                details:
+                    process.env.NODE_ENV === 'development'
+                        ? (error as Error).message
+                        : undefined,
+            },
             { status: 500 }
         );
     }

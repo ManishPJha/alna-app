@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Button } from '@/shared/components/ui/button';
 import { Menu, Restaurant } from '@/types/api';
 import { formatDate } from '@/utils/formatter';
 import {
@@ -57,6 +58,11 @@ export function MenusTable({
     onSortingChange,
 }: // currentUser,
 MenusTableProps) {
+    console.log(
+        '%c [ data ]-49',
+        'font-size:13px; background:#0db291; color:#51f6d5;',
+        data
+    );
     const [sorting, setSorting] = useState<SortingState>([]);
 
     // Handle sorting changes
@@ -172,6 +178,15 @@ MenusTableProps) {
                                         '#ef4444',
                                 }}
                                 title="Accent Color"
+                            />
+                            <div
+                                className="w-4 h-4 rounded border border-gray-300"
+                                style={{
+                                    backgroundColor:
+                                        row.original.theme?.backgroundColor ||
+                                        '#ffffff',
+                                }}
+                                title="Background Color"
                             />
                         </div>
                         <Palette className="w-3 h-3 text-gray-400" />
@@ -396,24 +411,24 @@ MenusTableProps) {
                             </span>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <button
+                            <Button
                                 onClick={() => table.previousPage()}
                                 disabled={pagination.page <= 1}
                                 className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 Previous
-                            </button>
+                            </Button>
                             <span className="px-3 py-1 text-sm text-gray-700">
                                 Page {pagination.page} of{' '}
                                 {pagination.totalPages}
                             </span>
-                            <button
+                            <Button
                                 onClick={() => table.nextPage()}
                                 disabled={!pagination.hasMore}
                                 className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 Next
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

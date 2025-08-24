@@ -31,19 +31,19 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             {/* Fixed Header */}
             <DashboardHeader currentUser={currentUser} />
 
-            <div className="flex">
-                {/* Persistent Fixed Sidebar */}
-                <div className="w-64 min-h-screen bg-white shadow-lg border-r border-gray-200 fixed left-0 top-12 pt-20 z-40">
-                    <DashboardSidebar currentUser={currentUser} />
-                </div>
+            {/* <div className="flex"> */}
+            {/* Persistent Fixed Sidebar */}
+            <div className="w-64 min-h-screen bg-white shadow-lg border-r border-gray-200 fixed left-0 top-12 pt-20 z-40">
+                <DashboardSidebar currentUser={currentUser} />
+            </div>
 
-                {/* Main Content Area with left margin to account for fixed sidebar */}
-                <div className="flex-1 ml-64 pt-20">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                        {children}
-                    </div>
+            {/* Main Content Area with left margin to account for fixed sidebar */}
+            <div className="flex-1 ml-64 pt-20">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    {children}
                 </div>
             </div>
+            {/* </div> */}
         </div>
     );
 };

@@ -1,9 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { MenuFormData } from '@/types/menu';
+import { MenuFormData, createNewFAQ } from '@/types/menu';
 import { HelpCircle, Plus, Trash2 } from 'lucide-react';
-import { UseFormReturn, useFieldArray } from 'react-hook-form';
+import { Controller, UseFormReturn, useFieldArray } from 'react-hook-form';
 import { FormInput, FormTextarea } from '../FormInput';
 
 interface FAQTabProps {
@@ -13,21 +13,19 @@ interface FAQTabProps {
 export function FAQTab({ form }: FAQTabProps) {
     const { fields, append, remove } = useFieldArray({
         control: form.control,
-        name: 'faqs',
+        name: 'faqs', // This should now work with updated MenuFormData
     });
+
+    const addFAQ = () => {
+        append(createNewFAQ());
+    };
 
     return (
         <div className="p-6">
             <div className="mb-6">
                 <Button
                     type="button"
-                    onClick={() =>
-                        append({
-                            id: `faq-${Date.now()}`,
-                            question: '',
-                            answer: '',
-                        })
-                    }
+                    onClick={addFAQ}
                     className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                 >
                     <Plus className="w-4 h-4 mr-2" />
@@ -42,17 +40,11 @@ export function FAQTab({ form }: FAQTabProps) {
                         No FAQs Added
                     </h3>
                     <p className="text-indigo-600 mb-4">
-                        Start by adding your first FAQ.
+                        Add frequently asked questions to help your customers.
                     </p>
                     <Button
                         type="button"
-                        onClick={() =>
-                            append({
-                                id: `faq-${Date.now()}`,
-                                question: '',
-                                answer: '',
-                            })
-                        }
+                        onClick={addFAQ}
                         className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                     >
                         <Plus className="w-4 h-4 mr-2" />
@@ -81,35 +73,84 @@ export function FAQTab({ form }: FAQTabProps) {
                                     Remove
                                 </Button>
                             </div>
+
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Question
+                                        Question *
                                     </label>
-                                    <FormInput
-                                        {...form.register(
-                                            `faqs.${index}.question` as const,
-                                            {
-                                                required:
-                                                    'Question is required',
-                                            }
+                                    <Controller
+                                        name={`faqs.${index}.question`}
+                                        control={form.control}
+                                        rules={{
+                                            required: 'Question is required',
+                                            maxLength: {
+                                                value: 200,
+                                                message:
+                                                    'Question cannot exceed 200 characters',
+                                            },
+                                        }}
+                                        render={({ field, fieldState }) => (
+                                            <div>
+                                                <FormInput
+                                                    {...field}
+                                                    placeholder="Enter FAQ question"
+                                                    className={
+                                                        fieldState.error
+                                                            ? 'border-red-500'
+                                                            : ''
+                                                    }
+                                                />
+                                                {fieldState.error && (
+                                                    <p className="text-red-500 text-sm mt-1">
+                                                        {
+                                                            fieldState.error
+                                                                .message
+                                                        }
+                                                    </p>
+                                                )}
+                                            </div>
                                         )}
-                                        placeholder="Enter FAQ question"
                                     />
                                 </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Answer
+                                        Answer *
                                     </label>
-                                    <FormTextarea
-                                        {...form.register(
-                                            `faqs.${index}.answer` as const,
-                                            {
-                                                required: 'Answer is required',
-                                            }
+                                    <Controller
+                                        name={`faqs.${index}.answer`}
+                                        control={form.control}
+                                        rules={{
+                                            required: 'Answer is required',
+                                            maxLength: {
+                                                value: 500,
+                                                message:
+                                                    'Answer cannot exceed 500 characters',
+                                            },
+                                        }}
+                                        render={({ field, fieldState }) => (
+                                            <div>
+                                                <FormTextarea
+                                                    {...field}
+                                                    placeholder="Enter FAQ answer"
+                                                    rows={3}
+                                                    className={
+                                                        fieldState.error
+                                                            ? 'border-red-500'
+                                                            : ''
+                                                    }
+                                                />
+                                                {fieldState.error && (
+                                                    <p className="text-red-500 text-sm mt-1">
+                                                        {
+                                                            fieldState.error
+                                                                .message
+                                                        }
+                                                    </p>
+                                                )}
+                                            </div>
                                         )}
-                                        placeholder="Enter FAQ answer"
-                                        rows={3}
                                     />
                                 </div>
                             </div>

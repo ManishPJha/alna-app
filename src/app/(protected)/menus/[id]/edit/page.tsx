@@ -19,14 +19,13 @@ export default function EditMenuPage() {
         isLoading: menuLoading,
         error: menuError,
     } = useMenu(menuId);
-
     const updateMutation = useUpdateMenu();
     const { data: restaurantsData } = useRestaurants();
     const restaurants = restaurantsData?.restaurants || [];
 
     // Transform the API response to form data
     const transformedMenu = useMemo(() => {
-        if (!menuResponse) return null;
+        if (!menuResponse?.data) return null;
 
         console.log('Raw API response:', menuResponse);
 
@@ -81,7 +80,7 @@ export default function EditMenuPage() {
     }
 
     // Error state
-    if (menuError || !menuResponse) {
+    if (menuError || !menuResponse?.success) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
                 <div className="text-center max-w-md">

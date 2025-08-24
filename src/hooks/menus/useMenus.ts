@@ -19,6 +19,7 @@ export const useMenus = (params?: MenusParams) => {
     return useQuery({
         queryKey: ['menus', params],
         queryFn: () => menuService.getAll(params),
+        select: (data) => data.data,
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
 };

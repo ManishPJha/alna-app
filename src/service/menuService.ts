@@ -1,4 +1,4 @@
-import { Menu, Pagination } from '@/types/api';
+import { ApiResponse, Menu, Pagination } from '@/types/api';
 import { apiClient } from './api-client';
 
 export interface MenuFilters {
@@ -11,8 +11,14 @@ export interface MenuFilters {
 }
 
 export interface MenusResponse {
-    menus: Menu[];
-    pagination: Pagination;
+    data: {
+        menus: Menu[];
+        pagination: Pagination;
+    };
+    success: boolean;
+    status?: number;
+    message?: string;
+    error?: string;
 }
 
 export const menuService = {
@@ -31,7 +37,7 @@ export const menuService = {
     },
 
     // Get single menu by ID
-    getById: (id: string) => apiClient.get<Menu>(`/menus/${id}`),
+    getById: (id: string) => apiClient.get<ApiResponse<Menu>>(`/menus/${id}`),
 
     // Create new menu
     create: (data: Partial<Menu>) => apiClient.post<Menu>('/menus', data),
