@@ -1,3 +1,5 @@
+'use client';
+
 import { logOutAction } from '@/actions/auth';
 import AppImage from '@/shared/components/ui/image';
 import { formatText } from '@/utils/formatter';

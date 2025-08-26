@@ -1,4 +1,3 @@
-import AdminDashboard from './components/AdminDashboard';
 import AdminNavbar from './components/AdminNavbar';
 import AdminSidebar from './components/AdminSidebar';
 import { DashboardCharts } from './components/DashboardCharts';
@@ -8,7 +7,6 @@ import { RecentActivity } from './components/RecentActivity';
 import { WelcomeSection } from './components/WelcomeSection';
 
 export {
-    AdminDashboard,
     AdminNavbar,
     AdminSidebar,
     DashboardCharts,

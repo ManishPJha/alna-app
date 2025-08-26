@@ -14,52 +14,51 @@ class ApiClient {
         endpoint: string,
         options: RequestInit = {}
     ): Promise<ApiResponse<T>> {
-        try {
-            const url = `${this.baseUrl}${endpoint}`;
+        // try {
+        const url = `${this.baseUrl}${endpoint}`;
 
-            const response = await fetch(url, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...options.headers,
-                },
-                ...options,
-            });
+        const response = await fetch(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            },
+            ...options,
+        });
 
-            const data = await response.json();
+        const data = await response.json();
 
-            if (!response.ok) {
-                throw new ApiError(
-                    data.error ||
-                        `HTTP ${response.status}: ${response.statusText}`,
-                    response.status,
-                    data.code
-                );
-            }
-
-            return {
-                success: true,
-                data,
-                message: data.message,
-            };
-        } catch (error) {
-            console.error(`API Error [${endpoint}]:`, error);
-
-            if (error instanceof ApiError) {
-                return {
-                    success: false,
-                    error: error.message,
-                    status: error.status,
-                };
-            }
-
-            return {
-                success: false,
-                error:
-                    error instanceof Error
-                        ? error.message
-                        : 'Network error occurred',
-            };
+        if (!response.ok) {
+            throw new ApiError(
+                data.error || `HTTP ${response.status}: ${response.statusText}`,
+                response.status,
+                data.code
+            );
         }
+
+        return {
+            success: true,
+            data,
+            message: data.message,
+        };
+        // } catch (error) {
+        //     console.error(`API Error [${endpoint}]:`, error);
+
+        //     if (error instanceof ApiError) {
+        //         return {
+        //             success: false,
+        //             error: error.message,
+        //             status: error.status,
+        //         };
+        //     }
+
+        //     return {
+        //         success: false,
+        //         error:
+        //             error instanceof Error
+        //                 ? error.message
+        //                 : 'Network error occurred',
+        //     };
+        // }
     }
 
     async get<T>(endpoint: string, params?: Record<string, string>) {

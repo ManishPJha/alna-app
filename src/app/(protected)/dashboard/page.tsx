@@ -1,4 +1,4 @@
-import { getSession } from '@/features/auth';
+import { auth } from '@/features/auth/handlers';
 import {
     // DashboardCharts,
     DashboardStats,
@@ -7,6 +7,7 @@ import {
     WelcomeSection,
 } from '@/features/dashboard';
 import { db } from '@/lib/db';
+import { Session } from 'next-auth';
 import { Suspense } from 'react';
 
 // Server-side data fetching for dashboard overview
@@ -183,28 +184,63 @@ async function getMonthlyStats(userRole: string, userId: string) {
 }
 
 export default async function DashboardPage() {
-    // const session = await getServerSession(authConfig);
-    const session = await getSession();
+    const session = await auth();
 
     if (!session) {
         return null; // This should be handled by middleware
     }
+
+    // const user = await db.user.findUnique({
+    //     where: { id: session.user.id },
+    //     select: { role: true },
+    // });
 
     const dashboardData = await getDashboardData(
         session.user.id,
         session.user.role
     );
 
+    // // Redirect to role-specific dashboard
+    // switch (user?.role) {
+    //     case 'ADMIN':
+    //         redirect('/admin');
+    //     case 'MANAGER':
+    //         redirect('/manager');
+    //     default:
+    //         // Regular user dashboard
+    //         return (
+    //             <UserDashboard
+    //                 dashboardData={dashboardData}
+    //                 currentUser={session.user}
+    //             />
+    //         );
+    // }
+
+    return (
+        <UserDashboard
+            dashboardData={dashboardData}
+            currentUser={session.user}
+        />
+    );
+}
+
+function UserDashboard({
+    dashboardData,
+    currentUser,
+}: {
+    dashboardData: Awaited<ReturnType<typeof getDashboardData>>;
+    currentUser: Session['user'];
+}) {
     return (
         <div className="space-y-8">
             {/* Welcome Section */}
-            <WelcomeSection user={session.user} />
+            <WelcomeSection user={currentUser} />
 
             {/* Stats Overview */}
             <Suspense fallback={<StatsLoadingSkeleton />}>
                 <DashboardStats
                     stats={dashboardData.stats}
-                    userRole={session.user.role}
+                    userRole={currentUser.role}
                 />
             </Suspense>
 
@@ -228,7 +264,7 @@ export default async function DashboardPage() {
                         <RecentActivity
                             restaurants={dashboardData.recentRestaurants}
                             users={dashboardData.recentUsers}
-                            userRole={session.user.role}
+                            userRole={currentUser.role}
                         />
                     </Suspense>
                 </div>

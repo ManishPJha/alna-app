@@ -33,6 +33,7 @@ export const paths = {
     signIn: '/auth/signin',
     signUp: '/auth/signup',
     dashboard: '/dashboard',
+    publicMenu: '/menu/[id]', // Add the public menu route
 } as const;
 
 // ⚠️ DEFINE METADATA FOR NEW ROUTES HERE ⚠️
@@ -62,5 +63,10 @@ export const routes: Record<keyof typeof paths, RouteData> = {
         name: 'Dashboard Page',
         path: paths.dashboard,
         accessType: 'protected',
+    },
+    publicMenu: {
+        name: 'Public Menu View',
+        path: paths.publicMenu,
+        accessType: 'universal', // Allow both authenticated and unauthenticated users
     },
 };

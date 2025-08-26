@@ -1,3 +1,5 @@
+import { MenuCategory } from './menu';
+
 export interface Restaurant {
     id: string;
     name: string;
@@ -21,6 +23,7 @@ export interface Restaurant {
     managers?: User[];
     qrCodes?: QRCode[];
     menuItems?: MenuItem[];
+    categories?: MenuCategory[];
 }
 
 export interface User {

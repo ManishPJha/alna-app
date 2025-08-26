@@ -13,7 +13,7 @@ interface FAQTabProps {
 export function FAQTab({ form }: FAQTabProps) {
     const { fields, append, remove } = useFieldArray({
         control: form.control,
-        name: 'faqs', // This should now work with updated MenuFormData
+        name: 'faqs',
     });
 
     const addFAQ = () => {

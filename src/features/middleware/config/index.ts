@@ -1,8 +1,8 @@
-import { authMiddleware } from "../middlewares/auth-middleware";
-import { i18nMiddleware } from "../middlewares/i18n-middleware";
-import { loggingMiddleware } from "../middlewares/logging-middleware";
+import { authMiddleware } from '../middlewares/auth-middleware';
+import { i18nMiddleware } from '../middlewares/i18n-middleware';
+import { loggingMiddleware } from '../middlewares/logging-middleware';
 // import { rateLimitMiddleware } from "../middlewares/rate-limit-middleware";
-import type { Middleware } from "../types";
+import type { Middleware } from '../types';
 
 /**
  * Configuration for middleware pipelines used in the application.
@@ -16,15 +16,15 @@ export const WINDOW_IN_SECONDS = 60;
 
 // Application routes middleware pipeline
 export const appMiddlewares: Middleware[] = [
-  loggingMiddleware, // Keep first for accuract timing
-  authMiddleware,
-  // rateLimitMiddleware,
-  i18nMiddleware,
+    loggingMiddleware, // Keep first for accuract timing
+    authMiddleware,
+    // rateLimitMiddleware,
+    i18nMiddleware,
 ];
 
 // API routes middleware pipeline
 export const apiMiddlewares: Middleware[] = [
-  loggingMiddleware,
-  // rateLimitMiddleware,
-  i18nMiddleware,
+    loggingMiddleware,
+    // rateLimitMiddleware,
+    i18nMiddleware,
 ];

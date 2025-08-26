@@ -1,40 +1,29 @@
-'use client';
-
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { DashboardSidebar } from '@/components/layout/DashboardSidebar';
-import { Session } from 'next-auth';
-import { useEffect, useState } from 'react';
+import { auth } from '@/features/auth/handlers';
 
 interface AdminLayoutProps {
     children: React.ReactNode;
 }
 
-const AdminLayout = ({ children }: AdminLayoutProps) => {
-    const [currentUser, setCurrentUser] = useState<Session['user'] | undefined>(
-        undefined
-    );
+const AdminLayout = async ({ children }: AdminLayoutProps) => {
+    const session = await auth();
 
-    useEffect(() => {
-        // Simulate fetching user session
-        const fetchUserSession = async () => {
-            const session = await fetch('/api/auth/session').then((res) =>
-                res.json()
-            );
-            setCurrentUser(session.user || null);
-        };
+    const user = session?.user;
 
-        fetchUserSession();
-    }, []);
+    if (!user) {
+        return null;
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
             {/* Fixed Header */}
-            <DashboardHeader currentUser={currentUser} />
+            <DashboardHeader currentUser={user} />
 
             {/* <div className="flex"> */}
             {/* Persistent Fixed Sidebar */}
             <div className="w-64 min-h-screen bg-white shadow-lg border-r border-gray-200 fixed left-0 top-12 pt-20 z-40">
-                <DashboardSidebar currentUser={currentUser} />
+                <DashboardSidebar currentUser={user} />
             </div>
 
             {/* Main Content Area with left margin to account for fixed sidebar */}

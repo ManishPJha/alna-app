@@ -25,13 +25,7 @@ export class MenuDataTransformer {
             console.error('No menu data found in API response');
             return null;
         }
-
-        console.log(
-            '%c [ menuData ]-25',
-            'font-size:13px; background:#65b474; color:#a9f8b8;',
-            menuData
-        );
-
+        
         try {
             // Extract restaurant info from various possible locations
             const restaurant = this.extractRestaurantInfo(menuData);

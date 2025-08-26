@@ -1,5 +1,5 @@
-import { getSession } from '@/features/auth';
 import { db } from '@/lib/db';
+import { requireAuth, requireRestaurantAccess } from '@/utils/auth-utils';
 import { createServiceContext } from '@/utils/service-utils';
 import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
@@ -40,19 +40,10 @@ type MenuItemWithCategory = Prisma.MenuItemGetPayload<{
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const session = await getSession();
-
-        if (!session?.user) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
-        const { id } = params;
+        const { id } = await params;
         log.info('Individual menu GET', { id });
 
         let restaurant: RestaurantWithRelations | null = null;
@@ -254,19 +245,20 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const session = await getSession();
+        const { error, user } = await requireAuth();
 
-        if (!session?.user) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
+        if (error || !user) return error;
 
-        const { id } = params;
+        const { error: restaurantError } = await requireRestaurantAccess(
+            user.restaurantId!
+        );
+
+        if (restaurantError) return restaurantError;
+
+        const { id } = await params;
         const data = await request.json();
 
         const {

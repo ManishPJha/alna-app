@@ -47,7 +47,8 @@ export default function ManagersPage({ currentUser }: ManagersPageProps) {
         limit: pagination.pageSize,
         search: searchQuery,
         sortBy: sorting[0]?.id as 'name' | 'email' | 'createdAt' | 'updatedAt',
-        sortOrder: sorting[0]?.desc ? 'desc' : 'asc',
+        // sortOrder: sorting[0]?.desc ? 'desc' : 'asc',
+        sortOrder: 'desc',
     });
 
     // Get restaurants for the form dropdown

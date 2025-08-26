@@ -1,3 +1,5 @@
+'use client';
+
 import { Menu, QrCode, Settings, Store, Users } from 'lucide-react';
 import { Session } from 'next-auth';
 import Link from 'next/link';
@@ -17,19 +19,25 @@ export const DashboardSidebar = ({ currentUser }: DashboardSidebarProps) => {
             icon: Settings,
             activePattern: /^\/dashboard$/,
         },
-        {
-            name: 'Restaurants',
-            href: '/restaurants',
-            icon: Store,
-            activePattern: /^\/restaurants/,
-        },
         ...(currentUser?.role === 'ADMIN'
             ? [
+                  {
+                      name: 'Restaurants',
+                      href: '/restaurants',
+                      icon: Store,
+                      activePattern: /^\/restaurants/,
+                  },
                   {
                       name: 'Managers',
                       href: '/managers',
                       icon: Users,
                       activePattern: /^\/managers/,
+                  },
+                  {
+                      name: 'Orders',
+                      href: '/orders',
+                      icon: Store,
+                      activePattern: /^\/orders/,
                   },
               ]
             : []),

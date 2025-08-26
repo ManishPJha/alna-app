@@ -1,4 +1,6 @@
-import type { paths } from "@/config/routes";
+import type { paths } from '@/config/routes';
+
+export type UserRole = 'USER' | 'MANAGER' | 'ADMIN';
 
 /**
  * Represents a valid route path string in the application.
@@ -20,19 +22,22 @@ export type RouteKey = keyof typeof paths;
  * - "protected": Only accessible when authenticated (dashboard, settings)
  * - "universal": Accessible regardless of authentication status (landing, about)
  */
-export type RouteAccessType = "public" | "protected" | "universal";
+export type RouteAccessType = 'public' | 'protected' | 'universal';
 
 /**
  * Metadata for a single route in the application.
  * Contains all the information needed to handle navigation and access control.
  */
 export type RouteData = {
-  /** User-friendly name of the route (for display in UI) */
-  name: string;
+    /** User-friendly name of the route (for display in UI) */
+    name: string;
 
-  /** URL path for the route (starts with slash) */
-  path: string;
+    /** URL path for the route (starts with slash) */
+    path: string;
 
-  /** Access control requirement for this route */
-  accessType: RouteAccessType;
+    /** Access control requirement for this route */
+    accessType: RouteAccessType;
+
+    // /** Roles allowed to access this route, or null if unrestricted */
+    // allowedRoles: UserRole[] | null;
 };

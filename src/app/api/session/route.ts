@@ -17,26 +17,59 @@ export async function GET(_request: Request) {
         );
     }
 
-    const isUserExist = await db.user.findUnique({
+    const user = await db.user.findUnique({
         where: {
             id: session?.user.id,
         },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            restaurantId: true,
+            isActive: true,
+            restaurant: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
     });
 
-    if (!isUserExist) {
+    if (!user) {
         return new NextResponse(
             JSON.stringify({
                 status: 'fail',
                 authenticated: false,
-                message: 'You are not logged in',
+                message: 'User not found',
             }),
             { status: 401 }
         );
     }
 
+    if (!user.isActive) {
+        return new NextResponse(
+            JSON.stringify({
+                status: 'fail',
+                authenticated: false,
+                message: 'User account is deactivated',
+            }),
+            { status: 403 }
+        );
+    }
+
     return NextResponse.json({
         status: 'success',
-        authenticated: !!session,
-        session,
+        authenticated: true,
+        session: {
+            ...session,
+            user: {
+                ...session.user,
+                role: user.role,
+                restaurantId: user.restaurantId,
+                restaurantName: user.restaurant?.name,
+            },
+        },
     });
 }

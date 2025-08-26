@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getSession } from '@/features/auth';
+import { auth } from '@/features/auth/handlers';
 import { db } from '@/lib/db';
+import { requireAuth, requireRestaurantAccess } from '@/utils/auth-utils';
 import { createServiceContext } from '@/utils/service-utils';
 import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
@@ -21,52 +22,91 @@ type RestaurantWithRelations = Prisma.RestaurantGetPayload<{
 
 export async function GET(request: NextRequest) {
     try {
-        const session = await getSession();
+        const { error, user } = await requireAuth();
+        if (error || !user) return error;
 
-        if (!session?.user) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
+        if (user.role !== 'ADMIN') {
+            const { error: restaurantError } = await requireRestaurantAccess(
+                user.restaurantId!
             );
+            if (restaurantError) return restaurantError;
         }
 
         const searchParams = request.nextUrl.searchParams;
         const page = Number(searchParams.get('page')) || 1;
         const limit = Number(searchParams.get('limit')) || 10;
-        const restaurantId = searchParams.get('restaurantId');
+        const search = searchParams.get('search');
 
-        log.info('menu GET', { page, limit, restaurantId });
+        // const sortBy = searchParams.get('sortBy') || 'updatedAt';
+        // const sortOrder = searchParams.get('sortOrder') || 'desc';
 
-        // Build the query with proper typing
-        const whereClause = restaurantId ? { id: restaurantId } : {};
+        log.info('menu GET', { page, limit, search });
 
-        const restaurants: RestaurantWithRelations[] =
-            await db.restaurant.findMany({
-                where: whereClause,
-                skip: (page - 1) * limit,
-                take: limit,
-                orderBy: { updatedAt: 'desc' },
-                include: {
-                    categories: {
-                        orderBy: { displayOrder: 'asc' },
-                        include: {
-                            menuItems: {
-                                orderBy: { displayOrder: 'asc' },
-                            },
+        const whereClause: Prisma.RestaurantWhereInput = {};
+
+        // Manager role filter
+        if (user.role === 'MANAGER' && user.restaurantId) {
+            whereClause.id = user.restaurantId;
+        }
+
+        // Search filter
+        if (search) {
+            whereClause.OR = [
+                { name: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
+                {
+                    managers: {
+                        some: {
+                            OR: [
+                                {
+                                    name: {
+                                        contains: search,
+                                        mode: 'insensitive',
+                                    },
+                                },
+                                {
+                                    email: {
+                                        contains: search,
+                                        mode: 'insensitive',
+                                    },
+                                },
+                            ],
                         },
                     },
-                    faqs: {
-                        where: { isActive: true },
-                        orderBy: { createdAt: 'desc' },
+                },
+            ];
+        }
+
+        const restaurants = await db.restaurant.findMany({
+            where: whereClause,
+            skip: (page - 1) * limit,
+            take: limit,
+            orderBy: { updatedAt: 'desc' },
+            include: {
+                categories: {
+                    orderBy: { displayOrder: 'asc' },
+                    include: {
+                        menuItems: { orderBy: { displayOrder: 'asc' } },
                     },
                 },
-            });
+                faqs: {
+                    where: { isActive: true },
+                    orderBy: { createdAt: 'desc' },
+                },
+                managers: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+            },
+        });
 
         const totalRestaurants = await db.restaurant.count({
             where: whereClause,
         });
 
-        // Transform restaurants into menu format
         const menus = restaurants.map((restaurant) => ({
             id: `menu-${restaurant.id}`,
             name: `${restaurant.name} Menu`,
@@ -89,7 +129,7 @@ export async function GET(request: NextRequest) {
                     id: item.id,
                     name: item.name,
                     description: item.description,
-                    price: parseFloat(item.price.toString()), // Convert Decimal to number
+                    price: parseFloat(item.price.toString()),
                     isVegetarian: item.isVegetarian,
                     isVegan: item.isVegan,
                     isGlutenFree: item.isGlutenFree,
@@ -104,7 +144,7 @@ export async function GET(request: NextRequest) {
                 question: faq.question,
                 answer: faq.answer,
             })),
-            theme: restaurant.menuTheme || {
+            theme: restaurant.menuTheme ?? {
                 primaryColor: '#1f2937',
                 backgroundColor: '#f9fafb',
                 accentColor: '#ef4444',
@@ -114,16 +154,17 @@ export async function GET(request: NextRequest) {
             updatedAt: restaurant.updatedAt,
         }));
 
-        const pagination = {
-            total: totalRestaurants,
-            page,
-            limit,
-            totalPages: Math.ceil(totalRestaurants / limit),
-            hasMore: page < Math.ceil(totalRestaurants / limit),
-        };
-
         return NextResponse.json({
-            data: { menus, pagination },
+            data: {
+                menus,
+                pagination: {
+                    total: totalRestaurants,
+                    page,
+                    limit,
+                    totalPages: Math.ceil(totalRestaurants / limit),
+                    hasMore: page < Math.ceil(totalRestaurants / limit),
+                },
+            },
             success: true,
         });
     } catch (error) {
@@ -137,7 +178,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const session = await getSession();
+        const session = await auth();
 
         if (!session?.user) {
             return NextResponse.json(
@@ -145,6 +186,12 @@ export async function POST(request: NextRequest) {
                 { status: 401 }
             );
         }
+
+        const { error } = await requireRestaurantAccess(
+            session.user.restaurantId!
+        );
+
+        if (error) return error;
 
         const data = await request.json();
         const {

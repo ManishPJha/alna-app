@@ -1,26 +1,19 @@
-import Link from "next/link";
-import ClientComponent from "./temps/ClientComponent";
-import ServerComponent from "./temps/ServerComponent";
+'use client';
 
-const LandingPage = () => (
-  <>
-    <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
-      Create <span className="text-[hsl(280,100%,70%)]">Alna</span>
-    </h1>
+import { paths } from '@/config/routes';
+import { usePublicSession } from '@/features/auth';
+import { redirect } from 'next/navigation';
 
-    <div className="max-w-[600px] space-y-5 text-left">
-      <ClientComponent />
+const LandingPage = () => {
+    const session = usePublicSession();
 
-      <ServerComponent />
-    </div>
+    if (session) {
+        redirect(paths.dashboard);
+    }
 
-    <Link
-      href={"/api/auth/signin"}
-      className={`rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20`}
-    >
-      {"Sign in"}
-    </Link>
-  </>
-);
+    redirect(paths.signIn);
+
+    return null;
+};
 
 export default LandingPage;

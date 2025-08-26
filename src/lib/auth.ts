@@ -55,13 +55,15 @@ export const authConfig = {
             if (user) {
                 token.role = (user as unknown as any).role as UserRole;
                 token.id = user.id;
+                token.restaurantId = (user as unknown as any)
+                    .restaurantId as string;
             }
 
             // Validate user still exists and is active
             if (token.id) {
                 const dbUser = await db.user.findUnique({
                     where: { id: token.id as string },
-                    select: { isActive: true, role: true },
+                    select: { isActive: true, role: true, restaurantId: true },
                 });
 
                 if (!dbUser || !dbUser.isActive) {
@@ -69,6 +71,7 @@ export const authConfig = {
                 }
 
                 token.role = dbUser.role;
+                token.restaurantId = dbUser.restaurantId;
             }
 
             return token;
@@ -77,6 +80,7 @@ export const authConfig = {
             if (token) {
                 session.user.id = token.id as string;
                 session.user.role = token.role as UserRole;
+                session.user.restaurantId = token.restaurantId as string;
             }
             return session;
         },

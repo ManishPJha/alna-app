@@ -1,4 +1,5 @@
 'use client';
+import { RoleGuard } from '@/components/auth/RoleGuard';
 import { MenuEditor } from '@/features/menu';
 import { useMenuForm } from '@/hooks/menus/useMenuForm';
 import { useCreateMenu } from '@/hooks/menus/useMenus';
@@ -43,31 +44,33 @@ export default function CreateMenuPage() {
     }
 
     return (
-        <div className="h-screen bg-gray-50">
-            <div className="bg-white border-b border-gray-200 px-6 py-4">
-                <nav className="flex items-center space-x-4 text-sm">
-                    <button
-                        onClick={() => router.push('/menus')}
-                        className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-                    >
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back to Menus
-                    </button>
-                    <span className="text-gray-400">/</span>
-                    <span className="text-gray-900 font-semibold">
-                        Create New Menu
-                    </span>
-                </nav>
-            </div>
+        <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
+            <div className="h-screen bg-gray-50">
+                <div className="bg-white border-b border-gray-200 px-6 py-4">
+                    <nav className="flex items-center space-x-4 text-sm">
+                        <button
+                            onClick={() => router.push('/menus')}
+                            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Back to Menus
+                        </button>
+                        <span className="text-gray-400">/</span>
+                        <span className="text-gray-900 font-semibold">
+                            Create New Menu
+                        </span>
+                    </nav>
+                </div>
 
-            <MenuEditor
-                form={form}
-                restaurants={restaurants}
-                onSave={handleSave}
-                onCancel={handleCancel}
-                loading={createMutation.isPending}
-                mode="create"
-            />
-        </div>
+                <MenuEditor
+                    form={form}
+                    restaurants={restaurants}
+                    onSave={handleSave}
+                    onCancel={handleCancel}
+                    loading={createMutation.isPending}
+                    mode="create"
+                />
+            </div>
+        </RoleGuard>
     );
 }

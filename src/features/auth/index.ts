@@ -5,22 +5,24 @@
  */
 
 // Hook for accessing the current authentication session state throughout the application
-export { useSession } from "./hooks/useSession";
+export { usePublicSession } from './hooks/usePublicSession';
+export { useRole } from './hooks/useRole';
+export { useSession } from './hooks/useSession';
 
 // Provider component that makes authentication session available to the component tree
-export { SessionProvider } from "./contexts/SessionContext";
+export { SessionProvider } from './contexts/SessionContext';
 
 // Provider for public routes that don't require full authentication context
-export { PublicSessionProvider } from "./contexts/PublicSessionContext";
+export { PublicSessionProvider } from './contexts/PublicSessionContext';
 
 // Server request handlers for authentication endpoints
-export { handlers } from "./handlers";
+export { handlers } from './handlers';
 
 // Authentication actions (login, logout, registration, etc.)
-export * from "./actions/auth-actions";
+export * from './actions/auth-actions';
 
 // Utility functions for route protection and navigation
-export * from "./utils/route-utils"; // isPublicRoute, isPrivateRoute, etc.
+export * from './utils/route-utils'; // isPublicRoute, isPrivateRoute, etc.
 
 // Public types that other modules may need when working with the auth module
-export * from "./types/public";
+export * from './types/public';

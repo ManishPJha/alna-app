@@ -20,6 +20,7 @@ export interface MenuItem {
     id: string;
     name: string;
     description: string;
+    imageUrl?: string;
     price: number;
     isVegetarian: boolean;
     isVegan: boolean;
@@ -28,6 +29,16 @@ export interface MenuItem {
     isAvailable: boolean;
     displayOrder: number;
     categoryId?: string;
+}
+
+export interface CartItem extends MenuItem {
+    quantity: number;
+}
+
+export interface Cart {
+    items: CartItem[];
+    total: number;
+    itemCount: number;
 }
 
 // New FAQ interface

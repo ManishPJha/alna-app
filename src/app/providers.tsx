@@ -56,7 +56,7 @@ export function Providers({ children, session }: ProvidersProps) {
                 />
                 <ReactQueryDevtools
                     initialIsOpen={false}
-                    buttonPosition="bottom-right"
+                    buttonPosition="top-left"
                 />
             </QueryClientProvider>
         </SessionProvider>

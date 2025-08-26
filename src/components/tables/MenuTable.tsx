@@ -58,11 +58,6 @@ export function MenusTable({
     onSortingChange,
 }: // currentUser,
 MenusTableProps) {
-    console.log(
-        '%c [ data ]-49',
-        'font-size:13px; background:#0db291; color:#51f6d5;',
-        data
-    );
     const [sorting, setSorting] = useState<SortingState>([]);
 
     // Handle sorting changes

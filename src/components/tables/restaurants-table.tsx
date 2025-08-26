@@ -15,10 +15,9 @@ import {
     ChevronUp,
     Edit,
     Eye,
-    QrCode,
     Store,
     Trash2,
-    Upload,
+    Upload
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -37,7 +36,6 @@ interface RestaurantsTableProps {
     onEdit: (restaurant: Restaurant) => void;
     onDelete: (id: string) => void;
     onView: (id: string) => void;
-    onGenerateQR: (id: string) => void;
     onUploadMenu: (restaurant: Restaurant) => void;
     onPaginationChange: (pagination: PaginationState) => void;
     onSortingChange: (sorting: SortingState) => void;
@@ -50,7 +48,6 @@ export function RestaurantsTable({
     onEdit,
     onDelete,
     onView,
-    onGenerateQR,
     onUploadMenu,
     onPaginationChange,
     onSortingChange,
@@ -126,6 +123,7 @@ export function RestaurantsTable({
                         Restaurant Manager
                     </div>
                 ),
+                enableSorting: false,
             },
             {
                 accessorKey: 'status',
@@ -136,6 +134,7 @@ export function RestaurantsTable({
                         Active
                     </span>
                 ),
+                enableSorting: false,
             },
             {
                 accessorKey: 'menu',
@@ -155,18 +154,7 @@ export function RestaurantsTable({
                         </button>
                     </div>
                 ),
-            },
-            {
-                accessorKey: 'qrCode',
-                header: 'QR Code',
-                cell: () => (
-                    <div className="flex items-center">
-                        <QrCode className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-sm font-mono text-gray-900 bg-gray-100 px-2 py-1 rounded">
-                            #22f4dc
-                        </span>
-                    </div>
-                ),
+                enableSorting: false,
             },
             {
                 id: 'actions',
@@ -188,13 +176,6 @@ export function RestaurantsTable({
                             <Edit className="h-4 w-4" />
                         </button>
                         <button
-                            onClick={() => onGenerateQR(row.original.id)}
-                            className="text-purple-600 hover:text-purple-900 transition-colors p-1 hover:bg-purple-50 rounded"
-                            title="Generate QR Code"
-                        >
-                            <QrCode className="h-4 w-4" />
-                        </button>
-                        <button
                             onClick={() => onDelete(row.original.id)}
                             className="text-red-600 hover:text-red-900 transition-colors p-1 hover:bg-red-50 rounded"
                             title="Delete Restaurant"
@@ -203,9 +184,10 @@ export function RestaurantsTable({
                         </button>
                     </div>
                 ),
+                enableSorting: false,
             },
         ],
-        [onEdit, onDelete, onView, onGenerateQR, onUploadMenu]
+        [onEdit, onDelete, onView, onUploadMenu]
     );
 
     const table = useReactTable({
