@@ -140,8 +140,8 @@ export const nextAuthConfig = {
         },
         async session({ session, token }) {
             if (token) {
-                // console.log('+++++++++++++token', token);
-                // console.log(' ----- session', session);
+                console.log('+++++++++++++token', token);
+                console.log(' ----- session', session);
 
                 // validate token
                 const dbUser = await db.user.findUnique({

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { authConfig as authConfigOptions } from '@/features/auth/config';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -49,6 +50,48 @@ export const authConfig = {
     session: {
         strategy: 'jwt',
         maxAge: 24 * 60 * 60, // 24 hours
+    },
+    // jwt: {
+    //     maxAge: 24 * 60 * 60, // 24 hours
+    // },
+    // cookies: {
+    //     sessionToken: {
+    //         name: `next-auth.session-token`,
+    //         options: {
+    //             httpOnly: true,
+    //             sameSite: 'lax',
+    //             path: '/',
+    //             secure: process.env.NODE_ENV === 'production',
+    //         },
+    //     },
+    // },
+    cookies: {
+        sessionToken: {
+            name: authConfigOptions.sessionCookieName,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: process.env.NODE_ENV === 'production',
+            },
+        },
+        // callbackUrl: {
+        //     name: `__Secure-next-auth.callback-url`,
+        //     options: {
+        //         sameSite: 'lax',
+        //         path: '/',
+        //         secure: true,
+        //     },
+        // },
+        csrfToken: {
+            name: authConfigOptions.csrfCookieName,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: process.env.NODE_ENV === 'production',
+            },
+        },
     },
     callbacks: {
         async jwt({ token, user }) {
