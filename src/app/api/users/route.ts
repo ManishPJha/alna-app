@@ -31,6 +31,10 @@ export async function GET(request: NextRequest) {
             searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
 
         const sortBy = searchParams.get('sortBy') || 'createdAt';
+        const finalSortBy = ['name', 'createdAt', 'updatedAt'].includes(sortBy)
+            ? sortBy
+            : 'createdAt';
+
         log.info('user GET', { page, limit, search, sortOrder, sortBy });
 
         const where: any = {
@@ -50,7 +54,7 @@ export async function GET(request: NextRequest) {
             skip: (page - 1) * limit,
             take: limit,
             where,
-            orderBy: { createdAt: sortOrder },
+            orderBy: { [finalSortBy]: sortOrder },
         });
 
         const totalUsers = await db.user.count({ where });

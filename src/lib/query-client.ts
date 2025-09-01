@@ -39,6 +39,23 @@ export const queryKeys = {
         stats: (id: string) =>
             [...queryKeys.restaurants.detail(id), 'stats'] as const,
     },
+    // Menu queries
+    menus: {
+        all: ['menus'] as const,
+        lists: () => [...queryKeys.menus.all, 'list'] as const,
+        list: (filters?: any) =>
+            [...queryKeys.menus.lists(), { filters }] as const,
+        byRestaurant: (restaurantId: string, filters?: any) =>
+            [
+                ...queryKeys.menus.lists(),
+                'restaurant',
+                restaurantId,
+                { filters },
+            ] as const,
+        details: () => [...queryKeys.menus.all, 'detail'] as const,
+        detail: (id: string) => [...queryKeys.menus.details(), id] as const,
+        public: (id: string) => ['menus', 'public', id] as const,
+    },
     // Users
     users: {
         all: ['users'] as const,
@@ -47,5 +64,49 @@ export const queryKeys = {
         details: () => [...queryKeys.users.all, 'detail'] as const,
         detail: (id: string) => [...queryKeys.users.details(), id] as const,
         profile: () => [...queryKeys.users.all, 'profile'] as const,
+    },
+    // Orders
+    orders: {
+        all: ['orders'] as const,
+        lists: () => [...queryKeys.orders.all, 'list'] as const,
+        list: (filters?: any) =>
+            [...queryKeys.orders.lists(), filters] as const,
+        byRestaurant: (restaurantId: string, filters?: any) =>
+            [
+                ...queryKeys.orders.lists(),
+                'restaurant',
+                restaurantId,
+                filters,
+            ] as const,
+        details: () => [...queryKeys.orders.all, 'detail'] as const,
+        detail: (id: string) => [...queryKeys.orders.details(), id] as const,
+        stats: (restaurantId: string, period?: string) =>
+            [...queryKeys.orders.all, 'stats', restaurantId, period] as const,
+    },
+    // QR Codes
+    qrCodes: {
+        all: ['qrCodes'] as const,
+        lists: () => [...queryKeys.qrCodes.all, 'list'] as const,
+        list: (filters?: any) =>
+            [...queryKeys.qrCodes.lists(), filters] as const,
+        byRestaurant: (restaurantId: string, filters?: any) =>
+            [
+                ...queryKeys.qrCodes.lists(),
+                'restaurant',
+                restaurantId,
+                filters,
+            ] as const,
+        byMenu: (menuId: string, filters?: any) =>
+            [...queryKeys.qrCodes.lists(), 'menu', menuId, filters] as const,
+        details: () => [...queryKeys.qrCodes.all, 'detail'] as const,
+        detail: (id: string) => [...queryKeys.qrCodes.details(), id] as const,
+        stats: (restaurantId: string, period?: string) =>
+            [...queryKeys.qrCodes.all, 'stats', restaurantId, period] as const,
+        analytics: (qrCodeId: string, period?: string) =>
+            [
+                ...queryKeys.qrCodes.detail(qrCodeId),
+                'analytics',
+                period,
+            ] as const,
     },
 } as const;

@@ -30,9 +30,7 @@ export default function SignIn() {
         if (result?.error) {
             log.error('signInAction error -', result.error);
             setError(result.error);
-            handleError('signInAction', result.error, {
-                customMessage: 'Error signing in user',
-            });
+            handleError('signInAction', result.error);
         }
 
         return result;
@@ -56,12 +54,7 @@ export default function SignIn() {
             }
         } catch (error) {
             setError('Something went wrong. Please try again.');
-            if (error instanceof Error) {
-                toast.error(error.message);
-            }
-            handleError('signInAction', error, {
-                customMessage: 'Error signing in user',
-            });
+            toast.error('Failed to login. Please try again.');
         } finally {
             setIsLoading(false);
         }

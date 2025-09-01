@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
     try {
-        const { message, restaurantId } = await request.json();
+        const { message, restaurantId, language = 'en' } = await request.json();
 
         if (!message || !restaurantId) {
             return NextResponse.json(
@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
         const result = await askAiFromDb({
             restaurantId,
             question: message,
+            language,
             includeFaq: true,
         });
 

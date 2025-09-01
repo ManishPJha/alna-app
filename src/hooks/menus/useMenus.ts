@@ -1,24 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // hooks/menus/useMenus.ts
-import { menuService } from '@/service/menuService';
+import { menuService, type MenuFilters } from '@/service/menuService';
 import { Menu } from '@/types/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-interface MenusParams {
-    page?: number;
-    limit?: number;
-    search?: string;
-    sortBy?: 'name' | 'createdAt' | 'updatedAt';
-    sortOrder?: 'asc' | 'desc';
-    restaurantId?: string;
-}
-
 // Get all menus with pagination and filtering
-export const useMenus = (params?: MenusParams) => {
+export const useMenus = (filters?: MenuFilters) => {
     return useQuery({
-        queryKey: ['menus', params],
-        queryFn: () => menuService.getAll(params),
+        queryKey: ['menus', filters],
+        queryFn: () =>
+            menuService.getAll({
+                ...filters,
+                sortBy: filters?.sortBy || 'createdAt',
+                sortOrder: filters?.sortOrder || 'desc',
+            }),
         select: (data) => data.data,
         staleTime: 5 * 60 * 1000, // 5 minutes
     });

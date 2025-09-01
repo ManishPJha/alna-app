@@ -16,12 +16,12 @@ export async function GET(request: NextRequest) {
         const page = Number(searchParams.get('page')) || 1;
         const limit = Number(searchParams.get('limit')) || 10;
         const search = searchParams.get('search') || '';
-        const sortOrder =
-            searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
-        const sortBy =
-            searchParams.get('sortBy') === 'undefined'
-                ? 'createdAt'
-                : searchParams.get('sortBy') || 'createdAt';
+        const sortBy = searchParams.get('sortBy') || 'createdAt';
+        const sortOrder = searchParams.get('sortOrder') || 'desc';
+
+        const finalSortBy = ['name', 'createdAt', 'updatedAt'].includes(sortBy)
+            ? sortBy
+            : 'createdAt';
 
         log.info('Fetching restaurants', {
             userId: user.id,
@@ -78,14 +78,14 @@ export async function GET(request: NextRequest) {
             where,
             skip: (page - 1) * limit,
             take: limit,
-            orderBy: { [sortBy]: sortOrder },
+            orderBy: { [finalSortBy]: sortOrder },
             include: {
                 _count: {
                     select: {
                         managers: true,
                         qrCodes: true,
                         menuItems: true,
-                        categories: true,
+                        menus: true, // ADDED: Count of menus
                         orders: true,
                     },
                 },
@@ -116,17 +116,14 @@ export async function GET(request: NextRequest) {
             timezone: restaurant.timezone,
             logoUrl: restaurant.logoUrl,
             themeColor: restaurant.themeColor,
-            menuTheme: restaurant.menuTheme,
-            isMenuPublished: restaurant.isMenuPublished,
-            menuVersion: restaurant.menuVersion,
-            lastMenuUpdate: restaurant.lastMenuUpdate,
+            // REMOVED: menuTheme, isMenuPublished, menuVersion, lastMenuUpdate (now in Menu model)
             createdAt: restaurant.createdAt,
             updatedAt: restaurant.updatedAt,
             // Flatten counts
             managersCount: restaurant._count.managers,
             qrCodesCount: restaurant._count.qrCodes,
             menuItemsCount: restaurant._count.menuItems,
-            categoriesCount: restaurant._count.categories,
+            menusCount: restaurant._count.menus, // ADDED
             ordersCount: restaurant._count.orders,
             // Include managers for ADMIN view
             ...(user.role === 'ADMIN' &&
@@ -190,8 +187,6 @@ export async function POST(request: NextRequest) {
             timezone,
             logoUrl,
             themeColor,
-            menuTheme,
-            isMenuPublished,
         } = body;
 
         // Validate required fields
@@ -241,53 +236,71 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create the restaurant
-        const restaurant = await db.restaurant.create({
-            data: {
-                name,
-                address,
-                description,
-                phone,
-                email,
-                defaultLanguage: defaultLanguage || 'en',
-                timezone: timezone || 'UTC',
-                logoUrl,
-                themeColor: themeColor || '#6366f1',
-                menuTheme: menuTheme || {},
-                isMenuPublished: isMenuPublished || false,
-                menuVersion: 1,
-            },
-            include: {
-                _count: {
-                    select: {
-                        managers: true,
-                        qrCodes: true,
-                        menuItems: true,
-                        categories: true,
-                        orders: true,
+        // Create restaurant and default menu in transaction
+        const result = await db.$transaction(async (prisma) => {
+            // Create the restaurant
+            const restaurant = await prisma.restaurant.create({
+                data: {
+                    name,
+                    address,
+                    description,
+                    phone,
+                    email,
+                    defaultLanguage: defaultLanguage || 'en',
+                    timezone: timezone || 'UTC',
+                    logoUrl,
+                    themeColor: themeColor || '#6366f1',
+                },
+                include: {
+                    _count: {
+                        select: {
+                            managers: true,
+                            qrCodes: true,
+                            menuItems: true,
+                            menus: true,
+                            orders: true,
+                        },
                     },
                 },
-            },
+            });
+
+            // Create default menu for the restaurant
+            const defaultMenu = await prisma.menu.create({
+                data: {
+                    name: `${name} Menu`,
+                    description: `Main menu for ${name}`,
+                    restaurantId: restaurant.id,
+                    isActive: true,
+                    isPublished: false, // Start unpublished
+                    theme: {
+                        primaryColor: '#1f2937',
+                        backgroundColor: '#f9fafb',
+                        accentColor: themeColor || '#6366f1',
+                        fontFamily: 'Inter',
+                    },
+                },
+            });
+
+            // Create default categories for the menu
+            await createDefaultCategories(defaultMenu.id, restaurant.id);
+
+            return restaurant;
         });
 
-        // Create default menu categories for the new restaurant
-        await createDefaultCategories(restaurant.id);
-
-        // Log successful creation
         log.info('Restaurant created successfully', {
-            restaurantId: restaurant.id,
-            name: restaurant.name,
+            restaurantId: result.id,
+            name: result.name,
             createdBy: user.id,
         });
 
         // Transform response
         const response = {
-            ...restaurant,
-            managersCount: restaurant._count.managers,
-            qrCodesCount: restaurant._count.qrCodes,
-            menuItemsCount: restaurant._count.menuItems,
-            categoriesCount: restaurant._count.categories,
-            ordersCount: restaurant._count.orders,
+            ...result,
+            managersCount: result._count.managers,
+            qrCodesCount: result._count.qrCodes,
+            menuItemsCount: result._count.menuItems,
+            menusCount: result._count.menus,
+            ordersCount: result._count.orders,
             _count: undefined,
         };
 
@@ -313,8 +326,8 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// Helper function to create default categories for a new restaurant
-async function createDefaultCategories(restaurantId: string) {
+// FIXED: Helper function to create default categories for a new menu
+async function createDefaultCategories(menuId: string, restaurantId: string) {
     const defaultCategories = [
         {
             name: 'Starters',
@@ -342,12 +355,12 @@ async function createDefaultCategories(restaurantId: string) {
         await db.menuCategory.createMany({
             data: defaultCategories.map((category) => ({
                 ...category,
-                restaurantId,
+                menuId, // FIXED: Use menuId instead of restaurantId
                 isActive: true,
                 isVisible: true,
             })),
         });
-        log.info('Default categories created', { restaurantId });
+        log.info('Default categories created', { menuId, restaurantId });
     } catch (error) {
         log.error('Error creating default categories', error);
         // Don't throw - restaurant creation should still succeed
@@ -366,7 +379,7 @@ function isValidPhone(phone: string): boolean {
     return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 10;
 }
 
-// Optional: Bulk operations for ADMIN users
+// FIXED: Bulk operations for ADMIN users
 export async function PATCH(request: NextRequest) {
     try {
         const { error, user } = await requireAuth();
@@ -403,19 +416,21 @@ export async function PATCH(request: NextRequest) {
 
         switch (action) {
             case 'publish':
-                result = await db.restaurant.updateMany({
-                    where: { id: { in: restaurantIds } },
+                // FIXED: Update menus instead of restaurants
+                result = await db.menu.updateMany({
+                    where: { restaurantId: { in: restaurantIds } },
                     data: {
-                        isMenuPublished: true,
-                        lastMenuUpdate: new Date(),
+                        isPublished: true,
+                        updatedAt: new Date(),
                     },
                 });
                 break;
 
             case 'unpublish':
-                result = await db.restaurant.updateMany({
-                    where: { id: { in: restaurantIds } },
-                    data: { isMenuPublished: false },
+                // FIXED: Update menus instead of restaurants
+                result = await db.menu.updateMany({
+                    where: { restaurantId: { in: restaurantIds } },
+                    data: { isPublished: false },
                 });
                 break;
 
@@ -460,7 +475,9 @@ export async function PATCH(request: NextRequest) {
         });
 
         return NextResponse.json({
-            message: `Successfully ${action}ed ${result.count} restaurant(s)`,
+            message: `Successfully ${action}ed ${result.count} ${
+                action === 'delete' ? 'restaurant(s)' : 'menu(s)'
+            }`,
             affected: result.count,
         });
     } catch (error) {
@@ -471,61 +488,3 @@ export async function PATCH(request: NextRequest) {
         );
     }
 }
-
-// export async function POST(request: NextRequest) {
-//     try {
-//         const session = await getSession();
-
-//         if (!session?.user) {
-//             return NextResponse.json(
-//                 { error: 'Unauthorized' },
-//                 { status: 401 }
-//             );
-//         }
-
-//         const body = await request.json();
-//         const {
-//             name,
-//             description,
-//             address,
-//             phone,
-//             email,
-//             defaultLanguage,
-//             timezone,
-//             logoUrl,
-//             themeColor,
-//         } = body;
-
-//         if (!name || !address) {
-//             return NextResponse.json(
-//                 { error: 'name and address are required' },
-//                 { status: 400 }
-//             );
-//         }
-
-//         log.info('restaurant POST', body);
-
-//         const restaurant = await db.restaurant.create({
-//             data: {
-//                 name,
-//                 address,
-//                 description,
-//                 phone,
-//                 email,
-//                 defaultLanguage,
-//                 timezone,
-//                 logoUrl,
-//                 themeColor,
-//             },
-//         });
-
-//         return NextResponse.json(restaurant);
-//     } catch (error) {
-//         log.error('restaurant POST error', error);
-
-//         return NextResponse.json(
-//             { error: 'Internal Server Error' },
-//             { status: 500 }
-//         );
-//     }
-// }

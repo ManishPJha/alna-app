@@ -8,7 +8,12 @@ import { toast } from 'sonner';
 export function useUsers(filters?: UserFilters) {
     return useQuery({
         queryKey: queryKeys.users.list(filters),
-        queryFn: () => userService.getAll(filters),
+        queryFn: () =>
+            userService.getAll({
+                ...filters,
+                sortBy: filters?.sortBy || 'createdAt',
+                sortOrder: filters?.sortOrder || 'desc',
+            }),
         select: (data) => ({
             users: data.data?.users || [],
             pagination: data.data?.pagination,

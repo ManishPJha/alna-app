@@ -110,13 +110,11 @@ export default function MenuEditor({
     const handleSubmit = async () => {
         const formData = form.getValues();
 
-        console.log('Form data before validation:', formData);
-
         // Perform comprehensive validation
         const validation = validateBeforeSubmit(formData);
 
         if (!validation.isValid) {
-            console.log('Validation failed:', validation.errors);
+            console.error('Validation failed:', validation.errors);
 
             // Show validation errors
             setValidationErrors(validation.errors);

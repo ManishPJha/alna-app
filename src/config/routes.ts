@@ -33,7 +33,9 @@ export const paths = {
     signIn: '/auth/signin',
     signUp: '/auth/signup',
     dashboard: '/dashboard',
+    publicMenuBase: '/menu', // Base path for public menu pages
     publicMenu: '/menu/[id]', // Add the public menu route
+    publicMenuRoot: '/public/menu', // Public menu entry point used by QR links
 } as const;
 
 // ⚠️ DEFINE METADATA FOR NEW ROUTES HERE ⚠️
@@ -64,9 +66,19 @@ export const routes: Record<keyof typeof paths, RouteData> = {
         path: paths.dashboard,
         accessType: 'protected',
     },
+    publicMenuBase: {
+        name: 'Public Menu Base',
+        path: paths.publicMenuBase,
+        accessType: 'universal',
+    },
     publicMenu: {
         name: 'Public Menu View',
         path: paths.publicMenu,
         accessType: 'universal', // Allow both authenticated and unauthenticated users
+    },
+    publicMenuRoot: {
+        name: 'Public Menu (QR Entry)',
+        path: paths.publicMenuRoot,
+        accessType: 'universal', // Accessible without login
     },
 };

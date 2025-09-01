@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from '@/components/ui/button';
 import { MenuFormData } from '@/types/menu';
 import { ChefHat, Plus, Search } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
 import { CategoryEditor } from '../CategoryEditor';
 import { FormInput } from '../FormInput';
@@ -13,6 +12,8 @@ interface ContentTabProps {
 
 export function ContentTab({ form }: ContentTabProps) {
     const [searchTerm, setSearchTerm] = useState('');
+
+    const bottomRef = useRef<HTMLDivElement | null>(null);
 
     const {
         fields: categoryFields,
@@ -28,7 +29,7 @@ export function ContentTab({ form }: ContentTabProps) {
     const filteredCategories = useMemo(() => {
         if (!searchTerm) return watchedCategories;
         return watchedCategories.filter(
-            (category: any) =>
+            (category) =>
                 category.name
                     ?.toLowerCase()
                     .includes(searchTerm.toLowerCase()) ||
@@ -36,7 +37,7 @@ export function ContentTab({ form }: ContentTabProps) {
                     ?.toLowerCase()
                     .includes(searchTerm.toLowerCase()) ||
                 category.items?.some(
-                    (item: any) =>
+                    (item) =>
                         item.name
                             ?.toLowerCase()
                             .includes(searchTerm.toLowerCase()) ||
@@ -58,6 +59,42 @@ export function ContentTab({ form }: ContentTabProps) {
         };
         appendCategory(newCategory);
     }, [appendCategory, watchedCategories.length]);
+
+    // 🔹 Global Add Item (adds to last category)
+    const addItem = useCallback(() => {
+        if (watchedCategories.length === 0) {
+            // If no categories, create one first
+            addCategory();
+            return;
+        }
+
+        const lastCategoryIndex = watchedCategories.length - 1;
+        const path = `categories.${lastCategoryIndex}.items` as const;
+
+        form.setValue(path, [
+            ...(watchedCategories[lastCategoryIndex]?.items || []),
+            {
+                id: `temp-item-${Date.now()}`,
+                name: 'New Item',
+                description: '',
+                price: 0,
+                isVegetarian: false,
+                isVegan: false,
+                isGlutenFree: false,
+                isSpicy: false,
+                isAvailable: true,
+                displayOrder:
+                    (watchedCategories[lastCategoryIndex]?.items?.length || 0) +
+                    1,
+            },
+        ]);
+    }, [watchedCategories, addCategory, form]);
+
+    useEffect(() => {
+        if (bottomRef.current) {
+            bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [watchedCategories]);
 
     return (
         <div className="p-6">
@@ -105,14 +142,45 @@ export function ContentTab({ form }: ContentTabProps) {
                         )}
                     </div>
                 ) : (
-                    categoryFields.map((category: any, categoryIndex) => (
-                        <CategoryEditor
-                            key={category.id}
-                            categoryIndex={categoryIndex}
-                            form={form}
-                            onDelete={() => removeCategory(categoryIndex)}
-                        />
-                    ))
+                    <>
+                        {categoryFields.map((category, categoryIndex) => (
+                            <CategoryEditor
+                                key={category.id}
+                                categoryIndex={categoryIndex}
+                                form={form}
+                                onDelete={() => removeCategory(categoryIndex)}
+                                addItem={addItem}
+                            />
+                        ))}
+
+                        {/* 🔹 Intersection Button (Bottom Add Item & Category) */}
+                        <div
+                            className="flex items-center space-x-2 justify-center"
+                            ref={bottomRef}
+                        >
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={addItem}
+                                className="text-black hover:bg-white/10 border-dashed"
+                                type="button"
+                            >
+                                <Plus className="w-4 h-4 mr-1" />
+                                Add Item
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={addCategory}
+                                className="text-black hover:bg-white/10 border-dashed"
+                                type="button"
+                            >
+                                <Plus className="w-4 h-4 mr-1" />
+                                Add Category
+                            </Button>
+                        </div>
+                    </>
                 )}
             </div>
         </div>

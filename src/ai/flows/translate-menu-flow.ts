@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow for translating the menu into different languages.
@@ -8,45 +7,51 @@
  * - Menu - The return type for the translateMenu function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const MenuItemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string(),
-  price: z.string(),
-  tags: z.array(z.enum(["vegetarian", "vegan", "gluten-free", "spicy"])),
+    id: z.string(),
+    name: z.string(),
+    description: z.string(),
+    price: z.string(),
+    tags: z.array(z.enum(['vegetarian', 'vegan', 'gluten-free', 'spicy'])),
 });
 
 const MenuSectionSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  items: z.array(MenuItemSchema),
+    id: z.string(),
+    title: z.string(),
+    description: z.string(),
+    items: z.array(MenuItemSchema),
 });
 
 const MenuSchema = z.object({
-  title: z.string(),
-  sections: z.array(MenuSectionSchema),
+    title: z.string(),
+    description: z.string(),
+    sections: z.array(MenuSectionSchema),
 });
 
 export type Menu = z.infer<typeof MenuSchema>;
 
 const TranslateMenuInputSchema = z.object({
-  menu: z.string().describe('The entire menu as a JSON string.'),
-  language: z.string().describe('The target language to translate the menu into (e.g., "Spanish", "French", "Japanese").'),
+    menu: z.string().describe('The entire menu as a JSON string.'),
+    language: z
+        .string()
+        .describe(
+            'The target language to translate the menu into (e.g., "Spanish", "French", "Japanese").'
+        ),
 });
 export type TranslateMenuInput = z.infer<typeof TranslateMenuInputSchema>;
 
 export async function translateMenu(input: TranslateMenuInput): Promise<Menu> {
-  return translateMenuFlow(input);
+    return translateMenuFlow(input);
 }
 
 const prompt = ai.definePrompt({
-  name: 'translateMenuPrompt',
-  input: {schema: TranslateMenuInputSchema},
-  output: {schema: MenuSchema},
-  prompt: `You are a professional translator specializing in restaurant menus.
+    name: 'translateMenuPrompt',
+    input: { schema: TranslateMenuInputSchema },
+    output: { schema: MenuSchema },
+    prompt: `You are a professional translator specializing in restaurant menus.
   Your task is to translate the provided menu into the target language.
 
   Follow these rules:
@@ -65,13 +70,50 @@ const prompt = ai.definePrompt({
 });
 
 const translateMenuFlow = ai.defineFlow(
-  {
-    name: 'translateMenuFlow',
-    inputSchema: TranslateMenuInputSchema,
-    outputSchema: MenuSchema,
-  },
-  async (input) => {
-    const {output} = await prompt(input);
-    return output!;
-  }
+    {
+        name: 'translateMenuFlow',
+        inputSchema: TranslateMenuInputSchema,
+        outputSchema: MenuSchema,
+    },
+    async (input) => {
+        try {
+            const { output } = await prompt(input);
+            return output!;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (error: any) {
+            // Handle specific API errors
+            if (
+                error.message?.includes('429') ||
+                error.message?.includes('quota')
+            ) {
+                throw new Error(
+                    'Translation service is temporarily unavailable due to high usage. Please try again later or contact support.'
+                );
+            }
+
+            if (
+                error.message?.includes('401') ||
+                error.message?.includes('unauthorized')
+            ) {
+                throw new Error(
+                    'Translation service authentication failed. Please check your API configuration.'
+                );
+            }
+
+            if (
+                error.message?.includes('500') ||
+                error.message?.includes('internal server error')
+            ) {
+                throw new Error(
+                    'Translation service is experiencing technical difficulties. Please try again later.'
+                );
+            }
+
+            // Generic error handling
+            console.error('Translation flow error:', error);
+            throw new Error(
+                'Failed to translate menu. Please try again later.'
+            );
+        }
+    }
 );

@@ -10,6 +10,7 @@ interface ItemEditorProps {
     categoryIndex: number;
     form: UseFormReturn<MenuFormData>;
     onDelete: () => void;
+    children?: React.ReactNode;
 }
 
 export function ItemEditor({
@@ -17,6 +18,7 @@ export function ItemEditor({
     categoryIndex,
     form,
     onDelete,
+    children,
 }: ItemEditorProps) {
     const item = form.watch(`categories.${categoryIndex}.items.${itemIndex}`);
 
@@ -26,7 +28,7 @@ export function ItemEditor({
                 <div className="space-y-4">
                     {/* Header with delete button */}
                     <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-3 pt-2">
                             <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
                                 <ChefHat className="w-4 h-4 text-white" />
                             </div>
@@ -181,6 +183,8 @@ export function ItemEditor({
                                 : 'Unavailable'}
                         </span>
                     </div>
+
+                    {children}
                 </div>
             </CardContent>
         </Card>

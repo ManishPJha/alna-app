@@ -1,4 +1,3 @@
-import { appConfig } from '@/config/appConfig';
 import { authConfig } from '@/config/auth';
 import { paths } from '@/config/routes';
 import {
@@ -19,12 +18,6 @@ import type { Middleware } from '../types';
  */
 export const authMiddleware: Middleware = async (request, next) => {
     const path = request.nextUrl.pathname;
-
-    console.log(
-        '________________environment_________________',
-        appConfig.environment,
-        authConfig.sessionCookieName
-    );
 
     // Universal routes can be accessed by everyone - no auth checks needed
     if (isUniversalRoute(path)) {

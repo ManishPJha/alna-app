@@ -35,7 +35,7 @@ export function FormInput({
 }
 
 interface FormTextareaProps {
-    value: string;
+    value: string | undefined;
     onChange: (value: string) => void;
     placeholder?: string;
     rows?: number;

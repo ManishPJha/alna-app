@@ -4,7 +4,7 @@
 import { RoleGuard } from '@/components/auth/RoleGuard';
 import { MenuUploadForm } from '@/components/forms/menu-upload-form';
 import { RestaurantForm } from '@/components/forms/restaurant-form';
-import { RestaurantsTable } from '@/components/tables/restaurants-table';
+import { RestaurantsTable } from '@/components/tables/RestaurantsTable';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
@@ -42,7 +42,9 @@ export default function RestaurantsPage() {
         pageIndex: 0,
         pageSize: 10,
     });
-    const [sorting, setSorting] = useState<SortingState>([]);
+    const [sorting, setSorting] = useState<SortingState>([
+        { id: 'createdAt', desc: true },
+    ]);
 
     // Queries and mutations with server-side params
     const { data: restaurantsData, isLoading } = useRestaurants({
@@ -114,7 +116,9 @@ export default function RestaurantsPage() {
     };
 
     const handleView = (id: string) => {
-        router.push(`/dashboard/restaurants/${id}`);
+        // router.push(`/dashboard/restaurants/${id}`);
+        console.log(id);
+        return;
     };
 
     // Handle server-side pagination changes

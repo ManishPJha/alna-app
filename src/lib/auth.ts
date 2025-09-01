@@ -110,7 +110,8 @@ export const authConfig = {
                 });
 
                 if (!dbUser || !dbUser.isActive) {
-                    return {}; // Invalidate token
+                    // Return null to invalidate token instead of empty object
+                    return null;
                 }
 
                 token.role = dbUser.role;
@@ -120,7 +121,7 @@ export const authConfig = {
             return token;
         },
         async session({ session, token }) {
-            if (token) {
+            if (token && token.id) {
                 session.user.id = token.id as string;
                 session.user.role = token.role as UserRole;
                 session.user.restaurantId = token.restaurantId as string;

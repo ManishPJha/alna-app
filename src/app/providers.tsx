@@ -51,12 +51,13 @@ export function Providers({ children, session }: ProvidersProps) {
                             background: 'white',
                             border: '1px solid #e5e7eb',
                             color: '#374151',
+                            zIndex: 999999,
                         },
                     }}
                 />
                 <ReactQueryDevtools
                     initialIsOpen={false}
-                    buttonPosition="top-left"
+                    buttonPosition="bottom-right"
                 />
             </QueryClientProvider>
         </SessionProvider>

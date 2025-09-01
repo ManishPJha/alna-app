@@ -7,6 +7,7 @@ export async function POST(request: Request): Promise<Response> {
         const restaurantId = body?.restaurantId as string | undefined;
         const question = body?.question as string | undefined;
         const includeFaq = (body?.includeFaq as boolean | undefined) ?? true;
+        const language = (body?.language as string | undefined) ?? 'en';
 
         if (!restaurantId || !question) {
             return NextResponse.json(
@@ -15,7 +16,7 @@ export async function POST(request: Request): Promise<Response> {
             );
         }
 
-        const { answer } = await askAiFromDb({ restaurantId, question, includeFaq });
+        const { answer } = await askAiFromDb({ restaurantId, question, includeFaq, language });
         return NextResponse.json({ answer });
     } catch (error) {
         console.error('ask-ai POST error', error);

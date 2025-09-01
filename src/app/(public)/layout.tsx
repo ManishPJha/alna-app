@@ -3,7 +3,7 @@ import { getSession, PublicSessionProvider } from '@/features/auth';
 import { getLanguage, TranslationProvider } from '@/features/i18n';
 import LayoutComponent from './_components/LayoutComponent';
 
-const I18N_NAMESPACES = ['home', 'translation'];
+const I18N_NAMESPACES = ['home', 'translation', 'menu-preview'];
 
 export default async function PublicLayout({
     children,

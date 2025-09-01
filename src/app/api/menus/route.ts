@@ -1,52 +1,41 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { auth } from '@/features/auth/handlers';
 import { db } from '@/lib/db';
-import { requireAuth, requireRestaurantAccess } from '@/utils/auth-utils';
+import { requireAuth } from '@/utils/auth-utils';
 import { createServiceContext } from '@/utils/service-utils';
 import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 const { log } = createServiceContext('MenuService');
 
-// Define the type for restaurant with includes
-type RestaurantWithRelations = Prisma.RestaurantGetPayload<{
-    include: {
-        categories: {
-            include: {
-                menuItems: true;
-            };
-        };
-        faqs: true;
-    };
-}>;
-
 export async function GET(request: NextRequest) {
     try {
         const { error, user } = await requireAuth();
         if (error || !user) return error;
 
-        if (user.role !== 'ADMIN') {
-            const { error: restaurantError } = await requireRestaurantAccess(
-                user.restaurantId!
+        if (user.role === 'MANAGER' && !user.restaurantId) {
+            return NextResponse.json(
+                { error: 'No restaurant assigned to this manager' },
+                { status: 403 }
             );
-            if (restaurantError) return restaurantError;
         }
 
         const searchParams = request.nextUrl.searchParams;
         const page = Number(searchParams.get('page')) || 1;
         const limit = Number(searchParams.get('limit')) || 10;
-        const search = searchParams.get('search');
+        const search = searchParams.get('search') || '';
+        const sortBy = searchParams.get('sortBy') || 'createdAt';
+        const sortOrder = searchParams.get('sortOrder') || 'desc';
 
-        // const sortBy = searchParams.get('sortBy') || 'updatedAt';
-        // const sortOrder = searchParams.get('sortOrder') || 'desc';
+        const finalSortBy = ['name', 'createdAt', 'updatedAt'].includes(sortBy)
+            ? sortBy
+            : 'createdAt';
 
-        log.info('menu GET', { page, limit, search });
+        log.info('menus GET', { page, limit, search });
 
-        const whereClause: Prisma.RestaurantWhereInput = {};
+        const whereClause: Prisma.MenuWhereInput = {};
 
-        // Manager role filter
-        if (user.role === 'MANAGER' && user.restaurantId) {
-            whereClause.id = user.restaurantId;
+        // Manager role filter - only see menus for their restaurant
+        if (user.role === 'MANAGER') {
+            whereClause.restaurantId = user.restaurantId!;
         }
 
         // Search filter
@@ -55,71 +44,57 @@ export async function GET(request: NextRequest) {
                 { name: { contains: search, mode: 'insensitive' } },
                 { description: { contains: search, mode: 'insensitive' } },
                 {
-                    managers: {
-                        some: {
-                            OR: [
-                                {
-                                    name: {
-                                        contains: search,
-                                        mode: 'insensitive',
-                                    },
-                                },
-                                {
-                                    email: {
-                                        contains: search,
-                                        mode: 'insensitive',
-                                    },
-                                },
-                            ],
-                        },
+                    restaurant: {
+                        name: { contains: search, mode: 'insensitive' },
                     },
                 },
             ];
         }
 
-        const restaurants = await db.restaurant.findMany({
+        const menus = await db.menu.findMany({
             where: whereClause,
             skip: (page - 1) * limit,
             take: limit,
-            orderBy: { updatedAt: 'desc' },
+            orderBy: { [finalSortBy]: sortOrder },
             include: {
+                restaurant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                    },
+                },
                 categories: {
                     orderBy: { displayOrder: 'asc' },
                     include: {
-                        menuItems: { orderBy: { displayOrder: 'asc' } },
+                        menuItems: {
+                            orderBy: { displayOrder: 'asc' },
+                            where: {
+                                restaurantId: whereClause.restaurantId as
+                                    | string
+                                    | undefined,
+                            },
+                        },
                     },
                 },
                 faqs: {
                     where: { isActive: true },
                     orderBy: { createdAt: 'desc' },
                 },
-                managers: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
             },
         });
 
-        const totalRestaurants = await db.restaurant.count({
-            where: whereClause,
-        });
+        const totalMenus = await db.menu.count({ where: whereClause });
 
-        const menus = restaurants.map((restaurant) => ({
-            id: `menu-${restaurant.id}`,
-            name: `${restaurant.name} Menu`,
-            description: restaurant.description,
-            restaurantId: restaurant.id,
-            isActive: restaurant.isMenuPublished,
-            restaurant: {
-                id: restaurant.id,
-                name: restaurant.name,
-                description: restaurant.description,
-                menuTheme: restaurant.menuTheme,
-            },
-            categories: restaurant.categories.map((category) => ({
+        const transformedMenus = menus.map((menu) => ({
+            id: menu.id,
+            name: menu.name,
+            description: menu.description,
+            restaurantId: menu.restaurantId,
+            isActive: menu.isActive,
+            isPublished: menu.isPublished,
+            restaurant: menu.restaurant,
+            categories: menu.categories.map((category) => ({
                 id: category.id,
                 name: category.name,
                 description: category.description,
@@ -139,36 +114,36 @@ export async function GET(request: NextRequest) {
                     categoryId: item.categoryId,
                 })),
             })),
-            faqs: restaurant.faqs.map((faq) => ({
+            faqs: menu.faqs.map((faq) => ({
                 id: faq.id,
                 question: faq.question,
                 answer: faq.answer,
             })),
-            theme: restaurant.menuTheme ?? {
+            theme: menu.theme || {
                 primaryColor: '#1f2937',
                 backgroundColor: '#f9fafb',
                 accentColor: '#ef4444',
                 fontFamily: 'Inter',
             },
-            createdAt: restaurant.createdAt,
-            updatedAt: restaurant.updatedAt,
+            createdAt: menu.createdAt,
+            updatedAt: menu.updatedAt,
         }));
 
         return NextResponse.json({
             data: {
-                menus,
+                menus: transformedMenus,
                 pagination: {
-                    total: totalRestaurants,
+                    total: totalMenus,
                     page,
                     limit,
-                    totalPages: Math.ceil(totalRestaurants / limit),
-                    hasMore: page < Math.ceil(totalRestaurants / limit),
+                    totalPages: Math.ceil(totalMenus / limit),
+                    hasMore: page < Math.ceil(totalMenus / limit),
                 },
             },
             success: true,
         });
     } catch (error) {
-        log.error('menu GET error', error);
+        log.error('menus GET error', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }
@@ -178,27 +153,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const session = await auth();
-
-        if (!session?.user) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
-        const { error } = await requireRestaurantAccess(
-            session.user.restaurantId!
-        );
-
-        if (error) return error;
+        const { error, user } = await requireAuth();
+        if (error || !user) return error;
 
         const data = await request.json();
         const {
             name,
             description,
             restaurantId,
-            isActive,
+            isActive = true,
+            isPublished = true,
             categories = [],
             faqs = [],
             theme,
@@ -224,6 +188,19 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Check restaurant access for managers
+        if (user.role === 'MANAGER') {
+            if (!user.restaurantId || user.restaurantId !== restaurantId) {
+                return NextResponse.json(
+                    {
+                        error: 'Access denied to this restaurant',
+                        success: false,
+                    },
+                    { status: 403 }
+                );
+            }
+        }
+
         // Verify restaurant exists
         const restaurant = await db.restaurant.findUnique({
             where: { id: restaurantId },
@@ -244,31 +221,22 @@ export async function POST(request: NextRequest) {
         });
 
         const result = await db.$transaction(async (prisma) => {
-            // Update restaurant with menu info and theme
-            const updatedRestaurant = await prisma.restaurant.update({
-                where: { id: restaurantId },
+            // Create the menu
+            const createdMenu = await prisma.menu.create({
                 data: {
-                    description: description || restaurant.description,
-                    menuTheme: theme,
-                    isMenuPublished: isActive !== false,
-                    menuVersion: restaurant.menuVersion + 1,
-                    lastMenuUpdate: new Date(),
+                    name,
+                    description,
+                    restaurantId,
+                    isActive,
+                    isPublished,
+                    theme,
                 },
-            });
-
-            // Clear existing data first (simpler approach)
-            await prisma.menuItem.deleteMany({
-                where: { restaurantId },
-            });
-            await prisma.menuCategory.deleteMany({
-                where: { restaurantId },
-            });
-            await prisma.fAQ.deleteMany({
-                where: { restaurantId },
             });
 
             // Create categories
             const createdCategories = [];
+            const createdItems = [];
+
             for (const category of categories) {
                 const createdCategory = await prisma.menuCategory.create({
                     data: {
@@ -277,21 +245,12 @@ export async function POST(request: NextRequest) {
                         displayOrder: category.displayOrder || 0,
                         isActive: category.isActive !== false,
                         isVisible: true,
-                        restaurantId,
+                        menuId: createdMenu.id,
                     },
                 });
-                createdCategories.push({
-                    original: category,
-                    created: createdCategory,
-                });
-            }
+                createdCategories.push(createdCategory);
 
-            // Create menu items
-            const createdItems = [];
-            for (const {
-                original: category,
-                created: createdCategory,
-            } of createdCategories) {
+                // Create items for this category
                 if (category.items && Array.isArray(category.items)) {
                     for (const item of category.items) {
                         const createdItem = await prisma.menuItem.create({
@@ -304,8 +263,6 @@ export async function POST(request: NextRequest) {
                                 isGlutenFree: item.isGlutenFree || false,
                                 isSpicy: item.isSpicy || false,
                                 isAvailable: item.isAvailable !== false,
-                                spiceLevel: item.spiceLevel || 0,
-                                isBestseller: item.isBestseller || false,
                                 displayOrder: item.displayOrder || 0,
                                 isVisible: true,
                                 restaurantId,
@@ -327,6 +284,7 @@ export async function POST(request: NextRequest) {
                                 question: faq.question,
                                 answer: faq.answer,
                                 restaurantId,
+                                menuId: createdMenu.id,
                                 isActive: true,
                             },
                         });
@@ -336,71 +294,58 @@ export async function POST(request: NextRequest) {
             }
 
             return {
-                restaurant: updatedRestaurant,
-                categories: createdCategories.map((c) => c.created),
+                menu: createdMenu,
+                categories: createdCategories,
                 items: createdItems,
                 faqs: createdFaqs,
-                stats: {
-                    categoriesCreated: createdCategories.length,
-                    itemsCreated: createdItems.length,
-                    faqsCreated: createdFaqs.length,
-                },
             };
         });
 
-        // Return the created menu in the expected format
-        const createdMenu = {
-            id: `menu-${restaurantId}`,
-            name: name,
-            description: description,
-            restaurantId: restaurantId,
-            isActive: isActive,
-            categories: result.categories.map((cat) => {
-                const originalCategory = categories.find(
-                    (c: any) => c.name === cat.name
-                );
-                return {
-                    id: cat.id,
-                    name: cat.name,
-                    description: cat.description,
-                    displayOrder: cat.displayOrder,
-                    isActive: cat.isActive,
-                    items: result.items
-                        .filter((item) => item.categoryId === cat.id)
-                        .map((item) => ({
-                            id: item.id,
-                            name: item.name,
-                            description: item.description,
-                            price: parseFloat(item.price.toString()),
-                            isVegetarian: item.isVegetarian,
-                            isVegan: item.isVegan,
-                            isGlutenFree: item.isGlutenFree,
-                            isSpicy: item.isSpicy,
-                            isAvailable: item.isAvailable,
-                            displayOrder: item.displayOrder,
-                            categoryId: item.categoryId,
-                        })),
-                };
-            }),
+        // Transform response
+        const createdMenuResponse = {
+            id: result.menu.id,
+            name: result.menu.name,
+            description: result.menu.description,
+            restaurantId: result.menu.restaurantId,
+            isActive: result.menu.isActive,
+            isPublished: result.menu.isPublished,
+            categories: result.categories.map((cat) => ({
+                id: cat.id,
+                name: cat.name,
+                description: cat.description,
+                displayOrder: cat.displayOrder,
+                isActive: cat.isActive,
+                items: result.items
+                    .filter((item) => item.categoryId === cat.id)
+                    .map((item) => ({
+                        id: item.id,
+                        name: item.name,
+                        description: item.description,
+                        price: parseFloat(item.price.toString()),
+                        isVegetarian: item.isVegetarian,
+                        isVegan: item.isVegan,
+                        isGlutenFree: item.isGlutenFree,
+                        isSpicy: item.isSpicy,
+                        isAvailable: item.isAvailable,
+                        displayOrder: item.displayOrder,
+                        categoryId: item.categoryId,
+                    })),
+            })),
             faqs: result.faqs.map((faq) => ({
                 id: faq.id,
                 question: faq.question,
                 answer: faq.answer,
             })),
-            theme: theme,
-            restaurant: {
-                id: result.restaurant.id,
-                name: result.restaurant.name,
-                menuTheme: result.restaurant.menuTheme,
-            },
+            theme: result.menu.theme,
+            createdAt: result.menu.createdAt,
+            updatedAt: result.menu.updatedAt,
         };
 
         return NextResponse.json(
             {
                 success: true,
                 message: 'Menu created successfully',
-                data: createdMenu,
-                stats: result.stats,
+                data: createdMenuResponse,
             },
             { status: 201 }
         );

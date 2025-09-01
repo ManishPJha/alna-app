@@ -1,6 +1,13 @@
 'use client';
 
-import { Menu, QrCode, Settings, Store, Users } from 'lucide-react';
+import {
+    ListOrdered,
+    Menu,
+    QrCode,
+    Settings,
+    Store,
+    Users,
+} from 'lucide-react';
 import { Session } from 'next-auth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -28,16 +35,10 @@ export const DashboardSidebar = ({ currentUser }: DashboardSidebarProps) => {
                       activePattern: /^\/restaurants/,
                   },
                   {
-                      name: 'Managers',
+                      name: 'Owners',
                       href: '/managers',
                       icon: Users,
                       activePattern: /^\/managers/,
-                  },
-                  {
-                      name: 'Orders',
-                      href: '/orders',
-                      icon: Store,
-                      activePattern: /^\/orders/,
                   },
               ]
             : []),
@@ -48,10 +49,22 @@ export const DashboardSidebar = ({ currentUser }: DashboardSidebarProps) => {
             activePattern: /^\/menus/,
         },
         {
+            name: 'Orders',
+            href: '/orders',
+            icon: ListOrdered,
+            activePattern: /^\/orders/,
+        },
+        {
             name: 'QR Codes',
             href: '/qr-codes',
             icon: QrCode,
             activePattern: /^\/qr-codes/,
+        },
+        {
+            name: 'Settings',
+            href: '/settings',
+            icon: Settings,
+            activePattern: /^\/settings/,
         },
     ];
 

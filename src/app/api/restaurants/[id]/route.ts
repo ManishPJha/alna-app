@@ -43,7 +43,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                         managers: true,
                         qrCodes: true,
                         menuItems: true,
-                        categories: true,
+                        menus: true, // ADDED: Count of menus
                         orders: true,
                     },
                 },
@@ -57,6 +57,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                         isActive: true,
                         lastLogin: true,
                     },
+                },
+                // Include menus for this restaurant
+                menus: {
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                        isActive: true,
+                        isPublished: true,
+                        version: true,
+                        createdAt: true,
+                        updatedAt: true,
+                        _count: {
+                            select: {
+                                categories: true,
+                                faqs: true,
+                            },
+                        },
+                    },
+                    orderBy: { createdAt: 'desc' },
+                    take: 5, // Limit for overview
                 },
             },
         });
@@ -74,7 +95,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             managersCount: restaurant._count.managers,
             qrCodesCount: restaurant._count.qrCodes,
             menuItemsCount: restaurant._count.menuItems,
-            categoriesCount: restaurant._count.categories,
+            menusCount: restaurant._count.menus, // ADDED
             ordersCount: restaurant._count.orders,
             _count: undefined, // Remove the _count object from response
         };
@@ -98,6 +119,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         if (error || !user) return error;
 
         const { id } = await params;
+
+        // Check if user has access to this restaurant
+        const hasAccess = await canAccessRestaurant(user, id);
+
+        if (!hasAccess) {
+            return NextResponse.json(
+                {
+                    error: 'Forbidden: You do not have access to this restaurant',
+                },
+                { status: 403 }
+            );
+        }
+
         const body = await request.json();
 
         // Check if restaurant exists
@@ -112,7 +146,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             );
         }
 
-        // Extract updatable fields from body
+        // Extract updatable fields from body (REMOVED menu-related fields)
         const {
             name,
             description,
@@ -123,10 +157,22 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             timezone,
             logoUrl,
             themeColor,
-            menuTheme,
-            isMenuPublished,
-            menuVersion,
         } = body;
+
+        // Validate fields if provided
+        if (email && !isValidEmail(email)) {
+            return NextResponse.json(
+                { error: 'Invalid email format' },
+                { status: 400 }
+            );
+        }
+
+        if (phone && !isValidPhone(phone)) {
+            return NextResponse.json(
+                { error: 'Invalid phone format' },
+                { status: 400 }
+            );
+        }
 
         log.info('restaurant PUT', { id, body });
 
@@ -143,10 +189,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
                 timezone,
                 logoUrl,
                 themeColor,
-                menuTheme,
-                isMenuPublished,
-                menuVersion,
-                lastMenuUpdate: isMenuPublished ? new Date() : undefined,
+                // REMOVED: menuTheme, isMenuPublished, menuVersion, lastMenuUpdate
             },
         });
 
@@ -170,7 +213,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
         const { id } = await params;
 
-        // / Check if user has access to this restaurant
+        // Check if user has access to this restaurant
         const hasAccess = await canAccessRestaurant(user, id);
 
         if (!hasAccess) {
@@ -202,7 +245,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData: any = {};
 
-        // List of allowed fields to update
+        // List of allowed fields to update (REMOVED menu-related fields)
         const allowedFields = [
             'name',
             'description',
@@ -213,9 +256,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             'timezone',
             'logoUrl',
             'themeColor',
-            'menuTheme',
-            'isMenuPublished',
-            'menuVersion',
         ];
 
         // Only include fields that are present in the request body
@@ -225,9 +265,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             }
         });
 
-        // Special handling for menu publishing
-        if ('isMenuPublished' in body && body.isMenuPublished) {
-            updateData.lastMenuUpdate = new Date();
+        // Validate fields if provided
+        if (updateData.email && !isValidEmail(updateData.email)) {
+            return NextResponse.json(
+                { error: 'Invalid email format' },
+                { status: 400 }
+            );
+        }
+
+        if (updateData.phone && !isValidPhone(updateData.phone)) {
+            return NextResponse.json(
+                { error: 'Invalid phone format' },
+                { status: 400 }
+            );
         }
 
         // Update the restaurant with only the provided fields
@@ -274,6 +324,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
                     select: {
                         managers: true,
                         orders: true,
+                        menus: true, // ADDED
                     },
                 },
             },
@@ -296,7 +347,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
         log.info('restaurant DELETE', { id, userId: user.id });
 
-        // Delete the restaurant (cascade will handle related records)
+        // Delete the restaurant (cascade will handle related records including menus)
         await db.restaurant.delete({
             where: { id },
         });
@@ -313,4 +364,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             { status: 500 }
         );
     }
+}
+
+// Validation helper functions
+function isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+function isValidPhone(phone: string): boolean {
+    // Basic phone validation - adjust regex based on your requirements
+    const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+    return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 10;
 }

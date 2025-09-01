@@ -3,25 +3,18 @@
 
 import { askAiFromDb } from '@/ai/flows/ask-ai-db-flow';
 import { translateMenu } from '@/ai/flows/translate-menu-flow';
-import { MenuFormData, MenuItem } from '@/types/menu';
-import {
-    ChefHat,
-    Filter,
-    Flame,
-    Globe,
-    Heart,
-    Leaf,
-    Minus,
-    Plus,
-    Search,
-    Wheat,
-    X
-} from 'lucide-react';
-import { useParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import { cookieName } from '@/config/i18n';
+import { MenuFormData } from '@/types/menu';
+import { ChefHat, Globe, Minus, Plus, ShoppingCart, X } from 'lucide-react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { AIChatButton, ChatInterface } from './chat';
-
+import {
+    LanguageSelector
+} from './customer-menu';
 
 interface ChatMessage {
     id: string;
@@ -34,114 +27,70 @@ interface CustomerMenuPreviewProps {
     form: UseFormReturn<MenuFormData>;
 }
 
-interface Category {
-    id: string;
-    name: string;
-    description: string;
-    items: MenuItem[];
-    isActive: boolean;
-}
-
-// Use supported languages from AI config
-// const languages = supportedLanguages;
-
-const DietaryTags = ({ item }: { item: MenuItem }) => {
-    const tags = [];
-
-    if (item.isVegetarian) {
-        tags.push({
-            label: 'Vegetariano',
-            className: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-            icon: <Leaf className="w-3 h-3" />,
-        });
-    }
-
-    if (item.isVegan) {
-        tags.push({
-            label: 'Vegano',
-            className: 'bg-green-50 text-green-700 border border-green-200',
-            icon: <Leaf className="w-3 h-3" />,
-        });
-    }
-
-    if (item.isGlutenFree) {
-        tags.push({
-            label: 'Sin Gluten',
-            className: 'bg-amber-50 text-amber-700 border border-amber-200',
-            icon: <Wheat className="w-3 h-3" />,
-        });
-    }
-
-    if (item.isSpicy) {
-        tags.push({
-            label: 'Picante',
-            className: 'bg-red-50 text-red-700 border border-red-200',
-            icon: <Flame className="w-3 h-3" />,
-        });
-    }
-
-    if (tags.length === 0) return null;
-
-    return (
-        <div className="flex flex-wrap gap-2 mt-3">
-            {tags.map((tag, index) => (
-                <span
-                    key={index}
-                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${tag.className}`}
-                >
-                    {tag.icon}
-                    <span className="ml-1">{tag.label}</span>
-                </span>
-            ))}
-        </div>
-    );
+const setLanguageCookie = (value: string) => {
+    document.cookie = `${cookieName}=${value}`;
 };
 
 export function CustomerMenuPreview({ form }: CustomerMenuPreviewProps) {
     const menuData = form.watch();
     const theme = menuData.theme;
     const params = useParams();
-    
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const { t, i18n } = useTranslation('menu-preview');
+
     const getRestaurantId = () => {
         if (params?.id) {
             const id = Array.isArray(params.id) ? params.id[0] : params.id;
+            // Handle both menu-{restaurantId} format and direct menuId
             const match = id.match(/menu-(.+)/);
-            return match ? match[1] : id;
+            return match ? match[1] : menuData.restaurantId || id;
         }
-        return '1';
+        return menuData.restaurantId || '1';
     };
-    
+
+    const getMenuId = () => {
+        if (params?.id) {
+            const id = Array.isArray(params.id) ? params.id[0] : params.id;
+            // If it's already a direct menu ID (not menu-{restaurantId} format), use it
+            if (!id.startsWith('menu-')) {
+                return id;
+            }
+            // Otherwise, use the menu ID from form data
+            return menuData.id || undefined;
+        }
+        return menuData.id || undefined;
+    };
+
     // Default theme fallback
     const defaultTheme = {
-        primaryColor: '#1f2937',
-        backgroundColor: '#ffffff',
-        accentColor: '#ef4444',
-        fontFamily: 'Inter'
+        primaryColor: '#ef4444',
+        backgroundColor: '#f8fafc',
+        accentColor: '#dc2626',
+        fontFamily: 'Inter',
     };
-    
+
     const displayTheme = theme || defaultTheme;
-    
+
     // State management
-    // const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
-    const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
     const [showChat, setShowChat] = useState(false);
-    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-        {
-            id: '1',
-            text: 'Hello! I\'m your AI menu assistant. I can help you find dishes, explain ingredients, suggest pairings, or answer any questions about our menu!',
-            isUser: false,
-            timestamp: new Date()
-        }
-    ]);
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [chatInput, setChatInput] = useState('');
-    const [favorites, setFavorites] = useState<Set<string>>(new Set());
-    const [searchTerm, setSearchTerm] = useState('');
-    const [dietaryFilter, setDietaryFilter] = useState<string>('all');
-    const [showFilters, setShowFilters] = useState(false);
-    const [cart, setCart] = useState<{[key: string]: number}>({});
+    // const [favorites, setFavorites] = useState<Set<string>>(new Set());
+    const [searchTerm] = useState('');
+    const [dietaryFilter] = useState<string>('all');
+    const [showSearchInput, setShowSearchInput] = useState(false);
+    const [cart, setCart] = useState<{ [key: string]: number }>({});
     const [showOrderModal, setShowOrderModal] = useState(false);
     const [isChatLoading, setIsChatLoading] = useState(false);
-    
+    const [tableNumber, setTableNumber] = useState<string>('');
+    const [specialRequests, setSpecialRequests] = useState<string>('');
+    const [isPlacingOrder, setIsPlacingOrder] = useState<boolean>(false);
+    const [orderFeedback, setOrderFeedback] = useState<string | null>(null);
+    const [qrToken, setQrToken] = useState<string | null>(null);
+    const [tables, setTables] = useState<string[]>([]);
+    const [isTablesLoading, setIsTablesLoading] = useState<boolean>(false);
+
     // Language support
     const languages = [
         { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -152,33 +101,159 @@ export function CustomerMenuPreview({ form }: CustomerMenuPreviewProps) {
         { code: 'pt', name: 'Português', flag: '🇵🇹' },
         { code: 'ja', name: '日本語', flag: '🇯🇵' },
         { code: 'zh', name: '中文', flag: '🇨🇳' },
-        { code: 'ko', name: '한국어', flag: '🇰🇷' }
+        { code: 'ko', name: '한국어', flag: '🇰🇷' },
     ];
     const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
     const [translatedMenuData, setTranslatedMenuData] = useState<any>(null);
     const [isTranslating, setIsTranslating] = useState(false);
+
+    // Helper function to get the current menu data (translated or original)
+    const getCurrentMenuData = () => {
+        if (selectedLanguage.code !== 'en' && translatedMenuData) {
+            return {
+                ...menuData,
+                name: translatedMenuData.title,
+                description: translatedMenuData.description,
+                categories:
+                    translatedMenuData.sections?.map((section: any) => ({
+                        ...menuData.categories?.find(
+                            (cat: any) => cat.id === section.id
+                        ),
+                        id: section.id,
+                        name: section.title,
+                        description: section.description,
+                        items:
+                            section.items?.map((translatedItem: any) => {
+                                const originalItem = menuData.categories
+                                    ?.flatMap((cat: any) => cat.items || [])
+                                    ?.find(
+                                        (item: any) =>
+                                            item.id === translatedItem.id
+                                    );
+
+                                return {
+                                    ...originalItem,
+                                    name: translatedItem.name,
+                                    description: translatedItem.description,
+                                    price:
+                                        originalItem?.price ||
+                                        parseFloat(translatedItem.price) ||
+                                        0,
+                                };
+                            }) || [],
+                    })) || [],
+            };
+        }
+        return menuData;
+    };
+
+    // Detect QR token from URL
+    useEffect(() => {
+        const token =
+            searchParams?.get('qr') ||
+            searchParams?.get('qrToken') ||
+            searchParams?.get('token');
+        setQrToken(token);
+        if (token) {
+            setTableNumber('');
+        }
+    }, [searchParams]);
+
+    // Load available tables when opening modal without QR token
+    useEffect(() => {
+        const loadTables = async () => {
+            if (!showOrderModal || qrToken) return;
+            setIsTablesLoading(true);
+            try {
+                const qs = new URLSearchParams({
+                    restaurantId: getRestaurantId(),
+                });
+                const res = await fetch(`/api/public/tables?${qs.toString()}`, {
+                    cache: 'no-store',
+                });
+                const data = await res.json();
+                if (!res.ok)
+                    throw new Error(data?.error || 'Failed to load tables');
+                const list = Array.isArray(data.tables) ? data.tables : [];
+                setTables(list);
+                if (!tableNumber && list.length > 0) {
+                    setTableNumber(list[0]);
+                }
+            } catch (e) {
+                console.error('Load tables error:', e);
+                setTables([]);
+            } finally {
+                setIsTablesLoading(false);
+            }
+        };
+        loadTables();
+    }, [showOrderModal, qrToken]);
 
     // Auto-translate menu when language changes
     useEffect(() => {
         if (selectedLanguage.code !== 'en') {
             translateMenuContent();
         } else {
-            setTranslatedMenuData(null); // Reset to original English
+            setTranslatedMenuData(null);
         }
-    }, [selectedLanguage]);
+        
+        // Update i18n language when selectedLanguage changes
+        if (i18n.language !== selectedLanguage.code) {
+            i18n.changeLanguage(selectedLanguage.code);
+        }
+    }, [selectedLanguage, i18n]);
+
+    // Clear chat messages and set new welcome message when language changes
+    useEffect(() => {
+        if (showChat) {
+            const welcomeMessage = t('ai.ai_chat_welcome_message');
+            
+            setChatMessages([{
+                id: '1',
+                text: welcomeMessage,
+                isUser: false,
+                timestamp: new Date(),
+            }]);
+        }
+    }, [showChat, selectedLanguage.code, t]);
+
+    // Handle keyboard events and click outside for search input
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && showSearchInput) {
+                setShowSearchInput(false);
+            }
+        };
+
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Element;
+            if (showSearchInput && !target.closest('.search-input-container')) {
+                setShowSearchInput(false);
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener('mousedown', handleClickOutside);
+        
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showSearchInput]);
 
     const translateMenuContent = async () => {
         if (selectedLanguage.code === 'en') return;
-        
+
         setIsTranslating(true);
+
         try {
             const menuDataForTranslation = prepareMenuForTranslation();
             const translated = await translateMenu({
                 menu: JSON.stringify(menuDataForTranslation),
-                language: selectedLanguage.name
+                language: selectedLanguage.name,
             });
             setTranslatedMenuData(translated);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Menu translation error:', error);
             setTranslatedMenuData(null);
         } finally {
@@ -186,194 +261,33 @@ export function CustomerMenuPreview({ form }: CustomerMenuPreviewProps) {
         }
     };
 
-    const handleQuickAction = (type: 'translate' | 'vegetarian' | 'recommendations') => {
-        let message = '';
-        
-        switch (type) {
-            case 'translate':
-                message = `Translate menu to ${selectedLanguage.name}`;
-                break;
-            case 'vegetarian':
-                message = "What are your vegetarian options?";
-                break;
-            case 'recommendations':
-                message = "Can you recommend something?";
-                break;
-        }
-        
-        setChatInput(message);
-        // Use setTimeout to ensure state is updated before sending
-        setTimeout(() => {
-            const userMessage: ChatMessage = {
-                id: Date.now().toString(),
-                text: message,
-                isUser: true,
-                timestamp: new Date()
-            };
-            setChatMessages(prev => [...prev, userMessage]);
-            setChatInput('');
-            
-            if (type === 'translate') {
-                handleTranslationRequest(selectedLanguage.name);
-            } else {
-                handleGeneralQuestion(message);
-            }
-        }, 0);
-    };
-    
-
-    // Filter functions
-    const filteredCategories = menuData.categories?.filter((cat: any) => {
-        if (!cat.isActive) return false;
-        
-        const hasMatchingItems = cat.items?.some((item: any) => {
-            if (!item.isAvailable) return false;
-            
-            const matchesSearch = !searchTerm || 
-                item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.description?.toLowerCase().includes(searchTerm.toLowerCase());
-            
-            const matchesDietary = dietaryFilter === 'all' ||
-                (dietaryFilter === 'vegetarian' && item.isVegetarian) ||
-                (dietaryFilter === 'vegan' && item.isVegan) ||
-                (dietaryFilter === 'gluten-free' && item.isGlutenFree) ||
-                (dietaryFilter === 'spicy' && item.isSpicy);
-            
-            return matchesSearch && matchesDietary;
-        });
-        
-        return hasMatchingItems;
-    });
-
-    const handleSendMessage = async () => {
-        if (!chatInput.trim() || isChatLoading) return;
-        
-        setIsChatLoading(true);
-        
-        const userMessage: ChatMessage = {
-            id: Date.now().toString(),
-            text: chatInput,
-            isUser: true,
-            timestamp: new Date()
-        };
-        
-        setChatMessages(prev => [...prev, userMessage]);
-        const currentInput = chatInput;
-        setChatInput('');
-        
-        // Add loading message
-        const loadingMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            text: 'Thinking...',
-            isUser: false,
-            timestamp: new Date()
-        };
-        setChatMessages(prev => [...prev, loadingMessage]);
-        
-        try {
-            let response: string;
-            
-            // Check if it's a translation request or if user wants to translate to selected language
-            if (currentInput.toLowerCase().includes('translate') || 
-                currentInput.toLowerCase().includes('traducir') ||
-                currentInput.toLowerCase().includes('translate menu') ||
-                currentInput.toLowerCase().includes('translate to')) {
-                
-                let targetLanguage = selectedLanguage.name;
-                
-                // If user specified a language in the request, use that instead
-                const requestedLanguage = extractLanguageFromRequest(currentInput);
-                if (requestedLanguage) {
-                    targetLanguage = requestedLanguage;
-                }
-                
-                const menuDataForTranslation = prepareMenuForTranslation();
-                const translatedMenu = await translateMenu({
-                    menu: JSON.stringify(menuDataForTranslation),
-                    language: targetLanguage
-                });
-                response = `Here's your menu translated to ${targetLanguage}:\n\n${formatTranslatedMenu(translatedMenu)}`;
-            } else {
-                // Use the AI database flow for general questions
-                const result = await askAiFromDb({
-                    restaurantId: getRestaurantId(),
-                    question: currentInput,
-                    includeFaq: true
-                });
-                response = result.answer;
-            }
-            
-            // Replace loading message with actual response
-            setChatMessages(prev => prev.map(msg => 
-                msg.id === loadingMessage.id 
-                    ? { ...msg, text: response }
-                    : msg
-            ));
-        } catch (error) {
-            console.error('AI response error:', error);
-            // Replace loading message with error response
-            setChatMessages(prev => prev.map(msg => 
-                msg.id === loadingMessage.id 
-                    ? { ...msg, text: "I'm sorry, I'm having trouble processing your request right now. Please try again in a moment." }
-                    : msg
-            ));
-        } finally {
-            setIsChatLoading(false);
-        }
-    };
-
-    const extractLanguageFromRequest = (input: string): string | null => {
-        const lowerInput = input.toLowerCase();
-        const languageMap: { [key: string]: string } = {
-            'spanish': 'Spanish',
-            'español': 'Spanish',
-            'espanol': 'Spanish',
-            'french': 'French',
-            'français': 'French',
-            'francais': 'French',
-            'german': 'German',
-            'deutsch': 'German',
-            'italian': 'Italian',
-            'italiano': 'Italian',
-            'portuguese': 'Portuguese',
-            'português': 'Portuguese',
-            'portugues': 'Portuguese',
-            'japanese': 'Japanese',
-            '日本語': 'Japanese',
-            'chinese': 'Chinese',
-            '中文': 'Chinese',
-            'korean': 'Korean',
-            '한국어': 'Korean'
-        };
-        
-        for (const [key, language] of Object.entries(languageMap)) {
-            if (lowerInput.includes(key)) {
-                return language;
-            }
-        }
-        return null;
-    };
-
     const prepareMenuForTranslation = () => {
         const menuDataForTranslation = {
             title: menuData.name || 'Menu',
-            sections: menuData.categories?.map((cat: any) => ({
-                id: cat.id,
-                title: cat.name,
-                items: cat.items?.map((item: any) => ({
-                    id: item.id,
-                    name: item.name,
-                    description: item.description || '',
-                    price: item.price.toString(),
-                    tags: buildTagsFromMenuItem(item)
-                })) || []
-            })) || []
+            description: menuData.description || '',
+            sections:
+                menuData.categories?.map((cat: any) => ({
+                    id: cat.id,
+                    title: cat.name,
+                    description: cat.description || '',
+                    items:
+                        cat.items?.map((item: any) => ({
+                            id: item.id,
+                            name: item.name,
+                            description: item.description || '',
+                            price: item.price.toString(),
+                            tags: buildTagsFromMenuItem(item),
+                        })) || [],
+                })) || [],
         };
         return menuDataForTranslation;
     };
 
-    const buildTagsFromMenuItem = (item: any): Array<'vegetarian' | 'vegan' | 'gluten-free' | 'spicy'> => {
-        const tags: Array<'vegetarian' | 'vegan' | 'gluten-free' | 'spicy'> = [];
+    const buildTagsFromMenuItem = (
+        item: any
+    ): Array<'vegetarian' | 'vegan' | 'gluten-free' | 'spicy'> => {
+        const tags: Array<'vegetarian' | 'vegan' | 'gluten-free' | 'spicy'> =
+            [];
         if (item.isVegetarian) tags.push('vegetarian');
         if (item.isVegan) tags.push('vegan');
         if (item.isGlutenFree) tags.push('gluten-free');
@@ -381,123 +295,135 @@ export function CustomerMenuPreview({ form }: CustomerMenuPreviewProps) {
         return tags;
     };
 
-    const formatTranslatedMenu = (translatedMenu: any): string => {
-        let formatted = `**${translatedMenu.title}**\n\n`;
-        
-        translatedMenu.sections.forEach((section: any) => {
-            formatted += `**${section.title}**\n`;
-            section.items.forEach((item: any) => {
-                formatted += `• ${item.name} - €${item.price}\n`;
-                if (item.description) {
-                    formatted += `  ${item.description}\n`;
-                }
-                if (item.tags.length > 0) {
-                    formatted += `  Tags: ${item.tags.join(', ')}\n`;
-                }
-                formatted += '\n';
+    const handleQuickAction = (
+        type: 'translate' | 'vegetarian' | 'recommendations'
+    ) => {
+        let message = '';
+
+        switch (type) {
+            case 'translate':
+                message = `Translate menu to ${selectedLanguage.name}`;
+                break;
+            case 'vegetarian':
+                message = 'What are your vegetarian options?';
+                break;
+            case 'recommendations':
+                message = 'Can you recommend something?';
+                break;
+        }
+
+        setChatInput(message);
+        setTimeout(() => {
+            const userMessage: ChatMessage = {
+                id: Date.now().toString(),
+                text: message,
+                isUser: true,
+                timestamp: new Date(),
+            };
+            setChatMessages((prev) => [...prev, userMessage]);
+            setChatInput('');
+
+            if (type === 'translate') {
+                handleTranslationRequest(selectedLanguage.name);
+            } else {
+                handleGeneralQuestion(message);
+            }
+        }, 0);
+    };
+
+    const handleSendMessage = async () => {
+        if (!chatInput.trim() || isChatLoading) return;
+
+        setIsChatLoading(true);
+
+        const userMessage: ChatMessage = {
+            id: Date.now().toString(),
+            text: chatInput,
+            isUser: true,
+            timestamp: new Date(),
+        };
+
+        setChatMessages((prev) => [...prev, userMessage]);
+        const currentInput = chatInput;
+        setChatInput('');
+
+        const loadingMessage: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            text: t('ai.ai_chat_loading_text'),
+            isUser: false,
+            timestamp: new Date(),
+        };
+        setChatMessages((prev) => [...prev, loadingMessage]);
+
+        try {
+            // FIXED: Pass menuId to provide more specific context
+            const result = await askAiFromDb({
+                restaurantId: getRestaurantId(),
+                menuId: getMenuId(), // Include specific menu ID if available
+                question: currentInput,
+                includeFaq: true,
+                language: selectedLanguage.code,
             });
-            formatted += '\n';
-        });
-        
-        return formatted;
+
+            setChatMessages((prev) =>
+                prev.map((msg) =>
+                    msg.id === loadingMessage.id
+                        ? { ...msg, text: result.answer }
+                        : msg
+                )
+            );
+        } catch (error) {
+            console.error('AI response error:', error);
+            
+            const errorMessage = t('ai.ai_chat_error_message');
+            
+            setChatMessages((prev) =>
+                prev.map((msg) =>
+                    msg.id === loadingMessage.id
+                        ? {
+                              ...msg,
+                              text: errorMessage,
+                          }
+                        : msg
+                )
+            );
+        } finally {
+            setIsChatLoading(false);
+        }
     };
 
     const handleTranslationRequest = async (language: string) => {
-        setIsChatLoading(true);
-        
-        // Add loading message
-        const loadingMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            text: 'Translating...',
-            isUser: false,
-            timestamp: new Date()
-        };
-        setChatMessages(prev => [...prev, loadingMessage]);
-        
-        try {
-            const menuDataForTranslation = prepareMenuForTranslation();
-            const translatedMenu = await translateMenu({
-                menu: JSON.stringify(menuDataForTranslation),
-                language: language
-            });
-            const response = `Here's your menu translated to ${language}:\n\n${formatTranslatedMenu(translatedMenu)}`;
-            
-            // Replace loading message with actual response
-            setChatMessages(prev => prev.map(msg => 
-                msg.id === loadingMessage.id 
-                    ? { ...msg, text: response }
-                    : msg
-            ));
-        } catch (error) {
-            console.error('Translation error:', error);
-            setChatMessages(prev => prev.map(msg => 
-                msg.id === loadingMessage.id 
-                    ? { ...msg, text: "I'm sorry, I'm having trouble translating the menu right now. Please try again in a moment." }
-                    : msg
-            ));
-        } finally {
-            setIsChatLoading(false);
-        }
+        // Implementation placeholder - could trigger translation
+        console.log('Translation requested for:', language);
     };
 
     const handleGeneralQuestion = async (question: string) => {
-        setIsChatLoading(true);
-        
-        // Add loading message
-        const loadingMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            text: 'Thinking...',
-            isUser: false,
-            timestamp: new Date()
-        };
-        setChatMessages(prev => [...prev, loadingMessage]);
-        
-        try {
-            const result = await askAiFromDb({
-                restaurantId: getRestaurantId(),
-                question: question,
-                includeFaq: true
-            });
-            
-            // Replace loading message with actual response
-            setChatMessages(prev => prev.map(msg => 
-                msg.id === loadingMessage.id 
-                    ? { ...msg, text: result.answer }
-                    : msg
-            ));
-        } catch (error) {
-            console.error('AI response error:', error);
-            setChatMessages(prev => prev.map(msg => 
-                msg.id === loadingMessage.id 
-                    ? { ...msg, text: "I'm sorry, I'm having trouble processing your request right now. Please try again in a moment." }
-                    : msg
-            ));
-        } finally {
-            setIsChatLoading(false);
-        }
+        // Implementation placeholder - could handle specific question types
+        console.log('General question:', question);
     };
 
-    const toggleFavorite = (itemId: string) => {
-        setFavorites(prev => {
-            const newFavorites = new Set(prev);
-            if (newFavorites.has(itemId)) {
-                newFavorites.delete(itemId);
-            } else {
-                newFavorites.add(itemId);
-            }
-            return newFavorites;
-        });
-    };
+    // Favorite functionality (currently not used in UI)
+    // const toggleFavorite = (itemId: string) => {
+    //     setFavorites((prev) => {
+    //         const newFavorites = new Set(prev);
+    //         if (newFavorites.has(itemId)) {
+    //             newFavorites.delete(itemId);
+    //         } else {
+    //             newFavorites.add(itemId);
+    //         }
+    //         return newFavorites;
+    //     });
+    // };
 
     const addToCart = (itemId: string) => {
-        setCart(prev => ({
+        setCart((prev) => ({
             ...prev,
-            [itemId]: (prev[itemId] || 0) + 1
+            [itemId]: (prev[itemId] || 0) + 1,
         }));
     };
 
     const removeFromCart = (itemId: string) => {
-        setCart(prev => {
+        setCart((prev) => {
             const newCart = { ...prev };
             if (newCart[itemId] > 1) {
                 newCart[itemId]--;
@@ -514,524 +440,743 @@ export function CustomerMenuPreview({ form }: CustomerMenuPreviewProps) {
 
     const getTotalPrice = () => {
         let total = 0;
+        const currentMenu = getCurrentMenuData();
         Object.entries(cart).forEach(([itemId, quantity]) => {
-            const item = menuData.categories?.flatMap((cat: any) => cat.items)?.find((item: any) => item.id === itemId);
+            const item = currentMenu.categories
+                ?.flatMap((cat: any) => cat.items || [])
+                ?.find((item: any) => item.id === itemId);
             if (item) {
-                total += item.price * quantity;
+                // Ensure price is treated as number
+                const itemPrice =
+                    typeof item.price === 'number'
+                        ? item.price
+                        : parseFloat(item.price) || 0;
+                total += itemPrice * quantity;
             }
         });
         return total;
     };
 
-    const getCartItems = () => {
-        const items: any[] = [];
+    const buildOrderItems = () => {
+        const items: Array<{
+            menuItemId: string;
+            quantity: number;
+            unitPrice: number;
+        }> = [];
+        const currentMenu = getCurrentMenuData();
         Object.entries(cart).forEach(([itemId, quantity]) => {
-            const item = menuData.categories?.flatMap((cat: any) => cat.items)?.find((item: any) => item.id === itemId);
-            if (item) {
-                items.push({ ...item, quantity });
+            const item = currentMenu.categories
+                ?.flatMap((cat: any) => cat.items || [])
+                ?.find((it: any) => it.id === itemId);
+            if (item && quantity > 0) {
+                // Ensure price is treated as number
+                const itemPrice =
+                    typeof item.price === 'number'
+                        ? item.price
+                        : parseFloat(item.price) || 0;
+                items.push({
+                    menuItemId: itemId,
+                    quantity,
+                    unitPrice: itemPrice,
+                });
             }
         });
         return items;
     };
 
+    const placeOrder = async () => {
+        if (isPlacingOrder) return;
+        const items = buildOrderItems();
+        if (items.length === 0) return;
+
+        setIsPlacingOrder(true);
+        setOrderFeedback(null);
+        try {
+            const payload = {
+                restaurantId: getRestaurantId(),
+                menuId: getMenuId(), // Include menu ID for order context
+                tableNumber: qrToken ? undefined : tableNumber || undefined,
+                qrToken: qrToken || undefined,
+                customerLanguage: selectedLanguage.code,
+                originalLanguage: 'en',
+                specialRequests: specialRequests || undefined,
+                items,
+            };
+
+            const res = await fetch('/api/public/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data?.error || 'Failed to place order');
+            }
+            setCart({});
+            setSpecialRequests('');
+            setTableNumber('');
+            setShowOrderModal(false);
+            toast.success('Order placed successfully');
+        } catch (err: any) {
+            setOrderFeedback('Failed to place order');
+            console.error('Place order error:', err);
+        } finally {
+            setIsPlacingOrder(false);
+        }
+    };
+
+    // Use current menu data for filtering
+    const currentMenu = getCurrentMenuData();
+
+    const getFilteredItems = () => {
+        const allItems =
+            currentMenu.categories?.flatMap(
+                (cat: any) =>
+                    cat.items?.filter(
+                        (item: any) => item.isAvailable !== false
+                    ) || []
+            ) || [];
+
+        return allItems.filter((item: any) => {
+            const matchesSearch =
+                !searchTerm ||
+                item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.description
+                    ?.toLowerCase()
+                    .includes(searchTerm.toLowerCase());
+
+            const matchesDietary =
+                dietaryFilter === 'all' ||
+                (dietaryFilter === 'vegetarian' && item.isVegetarian) ||
+                (dietaryFilter === 'vegan' && item.isVegan) ||
+                (dietaryFilter === 'gluten-free' && item.isGlutenFree) ||
+                (dietaryFilter === 'spicy' && item.isSpicy);
+
+            return matchesSearch && matchesDietary;
+        });
+    };
+
+    // Menu item component
+    const MenuItem = ({ item }: { item: any }) => {
+        // const isInCart = cart[item.id] > 0;
+        // const isFavorite = favorites.has(item.id);
+
     return (
-        <div className="relative min-h-screen" style={{ backgroundColor: displayTheme.backgroundColor }}>
-            {/* Modern Header with Spanish flair */}
-            <div className="relative overflow-visible">
-                {/* Background Pattern */}
-                <div className="absolute inset-0 bg-gradient-to-br" style={{ background: `linear-gradient(to bottom right, ${displayTheme.primaryColor}, ${displayTheme.accentColor})` }}>
-                    <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%23ffffff%22%20fill-opacity%3D%220.05%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%224%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
+            <div className="flex gap-3 items-start">
+                <div className="w-12 h-12 md:w-15 md:h-15 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                    {item.image || '🍽️'}
                 </div>
+                <div className="flex justify-between items-start gap-2 md:gap-3 flex-1">
+                    <div className="flex-1">
+                        <div className="flex sm:flex-row flex-col items-center gap-1 md:gap-2 mb-1">
+                            <h3 className="font-semibold text-gray-900 text-sm md:text-base">{item.name}</h3>
+                            <div className="flex gap-1 flex-wrap">
 
-                {/* Header Content */}
-                <div className="relative z-10 px-4 sm:px-6 py-6 sm:py-8">
-                    <div className="max-w-6xl mx-auto">
-                        {/* Top Navigation */}
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center space-x-4">
-                                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                                    <ChefHat className="w-6 h-6 text-white" />
-                                </div>
-                                {/* <div className="text-white">
-                                    <div className="flex items-center space-x-2 text-sm opacity-90">
-                                        <Clock className="w-4 h-4" />
-                                        <span>Abierto: 12:00 - 23:00</span>
-                                    </div>
-                                    <div className="flex items-center space-x-2 text-sm opacity-90 mt-1">
-                                        <MapPin className="w-4 h-4" />
-                                        <span>Calle Mayor 123, Madrid</span>
-                                    </div>
-                                </div> */}
+                            {item.isVegetarian && <span className="text-green-700 text-xs md:text-sm">V</span>}
+                            {item.isVegan && <span className="text-green-700 text-xs md:text-sm">VG</span>}
+                            {item.isGlutenFree && <span className="text-blue-700 text-xs md:text-sm">GF</span>}
+                            {item.isSpicy && <span className="text-red-700 text-xs md:text-sm">🌶️</span>}
                             </div>
                         </div>
-
-                        {/* Restaurant Title */}
-                        <div className="text-center text-white">
-                            <h1 className="text-2xl sm:text-3xl font-bold mb-4" style={{ fontFamily: displayTheme.fontFamily }}>
-                                {menuData.name || 'Menu Name'}
-                            </h1>
-                            {menuData.description && (
-                                <p className="text-sm sm:text-base opacity-90 max-w-2xl mx-auto leading-relaxed">
-                                    {menuData.description}
-                                </p>
-                            )}
-                           
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Search and Filters */}
-             {/* Search and Filters */}
-             <div className="sticky top-0 z-40 bg-white/98 backdrop-blur-lg border-b border-gray-200 shadow-lg">
-                <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        {/* Search Bar */}
-                        <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                            <input
-                                type="text"
-                                placeholder="Search menu..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:border-transparent shadow-sm transition-all duration-200 text-sm"
-                                style={{ 
-                                    '--tw-ring-color': displayTheme.primaryColor,
-                                    focusRingColor: displayTheme.primaryColor 
-                                } as React.CSSProperties}
-                                onFocus={(e) => e.currentTarget.style.borderColor = displayTheme.primaryColor}
-                            />
-                        </div>
-
-                        <div className="flex gap-2">
-                            {/* Filter Button */}
-                            <button
-                                onClick={() => setShowFilters(!showFilters)}
-                                className="px-4 py-2.5 text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm text-sm"
-                                style={{ backgroundColor: displayTheme.primaryColor }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = displayTheme.accentColor}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = displayTheme.primaryColor}
-                            >
-                                <Filter className="w-4 h-4" />
-                                <span>Filters</span>
-                            </button>
-                            
-                            {/* Language Selector */}
-                            <div className="relative">
+                        {item.description && (
+                            <p className="text-gray-600 text-xs md:text-sm leading-relaxed">{item.description}</p>
+                        )}
+                        <div className="flex items-center gap-1">
                                 <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowLanguageDropdown(!showLanguageDropdown);
-                                    }}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm text-sm"
+                                    onClick={() => removeFromCart(item.id)}
+                                    className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
                                 >
-                                    <Globe className="w-4 h-4 text-gray-600" />
-                                    <span className="text-base">{selectedLanguage.flag}</span>
-                                    <span className="hidden sm:inline text-gray-700">{selectedLanguage.name}</span>
-                                    <div className={`w-1.5 h-1.5 border-r-2 border-b-2 border-gray-400 transform transition-transform duration-200 ${
-                                        showLanguageDropdown ? '-rotate-45 translate-y-0.5' : 'rotate-45 -translate-y-0.5'
-                                    }`}></div>
+                                    <Minus className="w-3 h-3" />
                                 </button>
-                                
-                                {showLanguageDropdown && (
-                                    <>
-                                        {/* Backdrop */}
-                                        <div 
-                                            className="fixed inset-0 z-[90]" 
-                                            onClick={() => {
-                                                setShowLanguageDropdown(false);
-                                            }}
-                                        />
-                                        {/* Dropdown Menu */}
-                                        <div 
-                                            className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-[110] max-h-48 overflow-y-auto"
-                                            style={{
-                                                position: 'absolute',
-                                                top: '100%',
-                                                right: 0,
-                                                marginTop: '8px',
-                                                scrollbarWidth: 'thin',
-                                                scrollbarColor: '#e5e7eb transparent',
-                                            }}
-                                        >
-                                            {languages.map((lang) => (
-                                                <button
-                                                    key={lang.code}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSelectedLanguage(lang);
-                                                        setShowLanguageDropdown(false);
-                                                    }}
-                                                    className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center gap-2 transition-colors text-sm rounded-lg mx-1"
-                                                >
-                                                    <span className="text-base">{lang.flag}</span>
-                                                    <span className="text-gray-700">{lang.name}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
+                                <span className="font-medium text-sm min-w-4 text-center">
+                                    {cart[item.id] || 0}
+                                </span>
+                                <button
+                                    onClick={() => addToCart(item.id)}
+                                    className="w-6 h-6 rounded-full flex items-center justify-center text-white transition-colors"
+                                    style={{ backgroundColor: displayTheme.primaryColor }}
+                                >
+                                <Plus className="w-3 h-3" />
+                                </button>
                             </div>
-
-                            
-                        </div>
                     </div>
-
-                    {/* Filters Panel */}
-                    {showFilters && (
-                        <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                            <h3 className="font-semibold text-gray-900 mb-2 text-sm">Dietary Preferences</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {[
-                                    { value: 'all', label: 'All Items' },
-                                    { value: 'vegetarian', label: 'Vegetarian' },
-                                    { value: 'vegan', label: 'Vegan' },
-                                    { value: 'gluten-free', label: 'Gluten-Free' },
-                                    { value: 'spicy', label: 'Spicy' }
-                                ].map((filter) => (
-                                    <button
-                                        key={filter.value}
-                                        onClick={() => setDietaryFilter(filter.value)}
-                                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                                            dietaryFilter === filter.value
-                                                ? 'text-white shadow-md'
-                                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                                        }`}
-                                        style={dietaryFilter === filter.value ? { backgroundColor: displayTheme.primaryColor } : {}}
-                                    >
-                                        {filter.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    <div className="flex-col items-center gap-2">
+                        <span className="font-semibold text-gray-900 text-sm md:text-base min-w-fit">
+                            ${item.price.toFixed(2)}
+                        </span>
+                        {/* <button
+                            onClick={() => toggleFavorite(item.id)}
+                            className={`p-1 rounded-full transition-colors ${
+                                isFavorite
+                                    ? 'text-red-500 bg-red-50'
+                                    : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                            }`}
+                        >
+                            <svg className="w-4 h-4" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                        </button> */}
+                        
+                            
+                    
+                    </div>
                 </div>
             </div>
+        );
+    };
 
-            {/* Full Screen Translation Loading Overlay */}
-            {isTranslating && (
-                <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-md flex items-center justify-center">
-                    <div className="bg-white rounded-2xl shadow-2xl p-6 mx-4 max-w-md w-full border border-gray-200">
-                        <div className="text-center">
-                            <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center">
-                                <Globe className="w-6 h-6 text-white animate-spin" />
+    // Get categories and organize them for the layout
+    const categories = currentMenu.categories?.filter((cat: any) => cat.isActive !== false) || [];
+    const filteredItems = getFilteredItems();
+
+    // Organize items by category
+    const getCategoryItems = (categoryId: string) => {
+        return filteredItems.filter((item: any) =>
+            categories.find((cat: any) => cat.id === categoryId)?.items?.some(
+                (catItem: any) => catItem.id === item.id
+            )
+        );
+    };
+
+    return (
+        <div className="min-h-screen" style={{ backgroundColor: displayTheme.backgroundColor }}>
+            {/* Desktop Layout */}
+            <div className="hidden lg:block min-h-screen">
+                    {/* Desktop Header - Transparent */}
+                    <div className="px-6 py-4 bg-white/30 backdrop-blur-md border-b border-white/20">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                                <div
+                                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
+                                    style={{
+                                    backgroundColor: displayTheme.primaryColor,
+                                    }}
+                                >
+                                    <ChefHat className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold text-gray-900">
+                                        {currentMenu.name}
+                                    </h1>
+                                </div>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                Translating Menu to  <span className="font-medium text-purple-600">{selectedLanguage.name}</span>
-                            </h3>
+
+                            <div className="flex items-center space-x-4">
+                                    <LanguageSelector
+                                        languages={languages}
+                                        selectedLanguage={selectedLanguage}
+                                        onSelectLanguage={async (language) => {
+                                            setSelectedLanguage(language);
+                                            await i18n.changeLanguage(language.code);
+                                            setLanguageCookie(language.code);
+                                            router.refresh();
+                                        }}
+                                        theme={displayTheme}
+                                    />
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
 
-            {/* Main Menu Content */}
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
-                
-                {filteredCategories && filteredCategories.length > 0 ? (
-                    filteredCategories.map((category: any) => {
-                        // Get translated category data if available
-                        const translatedCategory = translatedMenuData?.sections?.find((s: any) => s.id === category.id);
-                        
-                        return (
-                            <div key={category.id} className="mb-8">
-                                {/* Category Header */}
-                                <div className="text-center mb-6">
-                                    <h2
-                                        className="text-xl sm:text-2xl font-bold mb-3"
-                                        style={{ color: theme.primaryColor, fontFamily: theme.fontFamily }}
-                                    >
-                                        {translatedCategory?.title || category.name}
-                                    </h2>
-                                    {category.description && (
-                                        <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-                                            {category.description}
+                {/* Desktop Menu Layout */}
+                <div className="p-6 md:p-8">
+                    <div className="max-w-6xl mx-auto">
+                        {/* Menu Header */}
+                        <div className="text-center mb-12">
+                            <h1 className="text-5xl md:text-6xl font-serif mb-2 text-balance" 
+                                style={{ color: displayTheme.primaryColor }}>
+                                {currentMenu.name || 'Food Menu'}
+                                    </h1>
+                                    {currentMenu.description && (
+                                <p className="text-lg font-medium tracking-wider" 
+                                   style={{ color: displayTheme.primaryColor }}>
+                                            {currentMenu.description}
                                         </p>
                                     )}
-                                    <div className="w-24 h-1 bg-gradient-to-r from-red-600 to-yellow-500 mx-auto mt-4 rounded-full"></div>
                                 </div>
 
-                            {/* Items Grid */}
-                            <div className="grid gap-6">
-                                {category.items
-                                    .filter((item: any) => {
-                                        if (!item.isAvailable) return false;
-                                        
-                                        const matchesSearch = !searchTerm || 
-                                            item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                            item.description?.toLowerCase().includes(searchTerm.toLowerCase());
-                                        
-                                        const matchesDietary = dietaryFilter === 'all' ||
-                                            (dietaryFilter === 'vegetarian' && item.isVegetarian) ||
-                                            (dietaryFilter === 'vegan' && item.isVegan) ||
-                                            (dietaryFilter === 'gluten-free' && item.isGlutenFree) ||
-                                            (dietaryFilter === 'spicy' && item.isSpicy);
-                                        
-                                        return matchesSearch && matchesDietary;
-                                    })
-                                    .map((item: any) => {
-                                        // Get translated item data if available
-                                        const translatedItem = translatedCategory?.items?.find((i: any) => i.id === item.id);
-                                        
-                                        return (
-                                            <div
-                                                key={item.id}
-                                                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100"
-                                            >
-                                                <div className="p-4 sm:p-6">
-                                                    <div className="flex flex-col sm:flex-row gap-4">
-                                                        {/* Item Image/Icon */}
-                                                        <div className="flex-shrink-0">
-                                                            <div 
-                                                                className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl group-hover:scale-105 transition-transform duration-200"
-                                                                style={{ 
-                                                                    background: `linear-gradient(to bottom right, ${displayTheme.primaryColor}20, ${displayTheme.accentColor}20)` 
-                                                                }}
-                                                            >
-                                                                {item.image}
-                                                            </div>
-                                                        </div>
+                        {/* Menu Content - 3-Column Layout */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
+                            {categories.map((category: any) => {
+                                const categoryItems = getCategoryItems(category.id);
+                                if (categoryItems.length === 0) return null;
 
-                                                        {/* Item Details */}
-                                                        <div className="flex-1">
-                                                            <div className="flex items-start justify-between mb-3">
-                                                                <h3
-                                                                    className="text-lg sm:text-xl font-bold"
-                                                                    style={{ color: displayTheme.primaryColor, fontFamily: displayTheme.fontFamily }}
-                                                                >
-                                                                    {translatedItem?.name || item.name}
-                                                                </h3>
-                                                                <div className="flex items-center gap-2 ml-4">
-                                                                    <button
-                                                                        onClick={() => toggleFavorite(item.id)}
-                                                                        className={`p-2 rounded-full transition-colors ${
-                                                                            favorites.has(item.id)
-                                                                                ? 'bg-red-50'
-                                                                                : 'text-gray-400 hover:bg-red-50'
-                                                                        }`}
-                                                                        style={{
-                                                                            color: favorites.has(item.id) ? displayTheme.accentColor : undefined
-                                                                        }}
-                                                                        onMouseEnter={(e) => {
-                                                                            if (!favorites.has(item.id)) {
-                                                                                e.currentTarget.style.color = displayTheme.accentColor;
-                                                                            }
-                                                                        }}
-                                                                        onMouseLeave={(e) => {
-                                                                            if (!favorites.has(item.id)) {
-                                                                                e.currentTarget.style.color = '#9CA3AF';
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        <Heart className={`w-5 h-5 ${favorites.has(item.id) ? 'fill-current' : ''}`} />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
+                                                if (categoryItems.length === 0)
+                                                    return null;
 
-                                                            <p className="text-gray-600 leading-relaxed mb-4 text-sm sm:text-base">
-                                                                {translatedItem?.description || item.description}
-                                                            </p>
-
-                                                            <DietaryTags item={item} />
-
-                                                            <div className="flex items-center justify-between mt-6">
-                                                                <div className="flex items-center">
-                                                                    <span
-                                                                        className="text-lg sm:text-xl font-bold"
-                                                                        style={{ color: displayTheme.accentColor }}
-                                                                    >
-                                                                        €{item.price.toFixed(2)}
-                                                                    </span>
-                                                                </div>
-
-                                                                {/* Add to Cart */}
-                                                                <div className="flex items-center gap-3">
-                                                                    {cart[item.id] ? (
-                                                                        <div className="flex items-center gap-3 rounded-xl px-4 py-2" style={{ backgroundColor: `${displayTheme.primaryColor}10` }}>
-                                                                            <button
-                                                                                onClick={() => removeFromCart(item.id)}
-                                                                                className="p-1 rounded-lg transition-colors"
-                                                                                style={{ color: displayTheme.primaryColor }}
-                                                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${displayTheme.primaryColor}20`}
-                                                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                                            >
-                                                                                <Minus className="w-4 h-4" />
-                                                                            </button>
-                                                                            <span className="font-semibold min-w-8 text-center" style={{ color: displayTheme.primaryColor }}>
-                                                                                {cart[item.id]}
-                                                                            </span>
-                                                                            <button
-                                                                                onClick={() => addToCart(item.id)}
-                                                                                className="p-1 rounded-lg transition-colors"
-                                                                                style={{ color: displayTheme.primaryColor }}
-                                                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${displayTheme.primaryColor}20`}
-                                                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                                                            >
-                                                                                <Plus className="w-4 h-4" />
-                                                                            </button>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <button
-                                                                            onClick={() => addToCart(item.id)}
-                                                                            className="text-white px-6 py-3 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md"
-                                                                            style={{ backgroundColor: displayTheme.primaryColor }}
-                                                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = displayTheme.accentColor}
-                                                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = displayTheme.primaryColor}
-                                                                        >
-                                                                            <Plus className="w-4 h-4" />
-                                                                            <span>Add</span>
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                return (
+                                    <div key={category.id} className="space-y-6 md:space-y-8">
+                                        <div>
+                                            <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6 tracking-wider border-b pb-2"
+                                                style={{ color: displayTheme.primaryColor, borderColor: displayTheme.primaryColor + '40' }}>
+                                                {category.name?.toUpperCase()}
+                                            </h2>
+                                            <div className="space-y-3 md:space-y-4">
+                                                {categoryItems.map((item: any) => (
+                                                    <MenuItem key={item.id} item={item} />
+                                                ))}
                                             </div>
-                                        );
-                                    })}
+                                        </div>
+                                    </div>
+                                                );
+                                            })}
+                                    </div>
+
+                        {/* Menu Footer */}
+                        <div className="text-center mt-12 md:mt-16 text-gray-600 text-xs leading-relaxed max-w-4xl mx-auto">
+                            {/* <p className="mb-2">
+                                If you require any information regarding the presence of allergens in any of our food and drinks, please ask
+                                a member of staff who will be happy to help.
+                            </p>
+                            <p className="mb-2">
+                                Please be aware that our kitchen is not a nut free environment. Dishes containing nuts are marked with (n).
+                            </p>
+                            <p>
+                                Food allergies and intolerances: before ordering please speak to our staff about your requirements. Prices
+                                include VAT at the current rate.
+                            </p> */}
+                            <div className="mt-4 flex justify-center items-center gap-4 text-xs">
+                                <span>{t('ai.dietary_vegan')}</span>
+                                <span>{t('ai.dietary_vegetarian')}</span>
+                                <span>{t('ai.dietary_gluten_free')}</span>
                             </div>
                         </div>
-                    );
-                    })
-                ) : (
-                    <div className="text-center py-16">
-                        <ChefHat className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                        <h3 className="text-lg font-semibold text-gray-600 mb-2">
-                            {searchTerm || dietaryFilter !== 'all' ? 'No items found' : 'No menu items yet'}
-                        </h3>
-                        <p className="text-gray-500 text-sm">
-                            {searchTerm || dietaryFilter !== 'all' 
-                                ? 'Try adjusting your search or filters'
-                                : 'Start adding categories and items to see your menu preview'
-                            }
-                        </p>
+                    </div>
+                </div>
+
+                {/* Desktop Cart Button */}
+                {getTotalItems() > 0 && (
+                    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+                        <button
+                            onClick={() => setShowOrderModal(true)}
+                            className="text-white px-8 py-4 rounded-xl shadow-2xl transition-all duration-200 flex items-center gap-4 hover:scale-105"
+                            style={{
+                                backgroundColor: displayTheme.primaryColor,
+                            }}
+                        >
+                            <ShoppingCart className="w-5 h-5" />
+                            <span className="font-semibold">
+                                {t('cart.view_cart_btn')}
+                            </span>
+                            <div className="flex items-center gap-3">
+                                <span className="bg-white/20 px-2 py-1 rounded-full text-sm">
+                                    {getTotalItems()}
+                                </span>
+                                <span className="font-bold">
+                                    ${getTotalPrice().toFixed(2)}
+                                </span>
+                            </div>
+                        </button>
                     </div>
                 )}
             </div>
 
-            {/* Floating Cart Button */}
-            {getTotalItems() > 0 && (
-                <div className="fixed bottom-6 right-24 z-9">
-                    <button 
-                        onClick={() => setShowOrderModal(true)}
-                        className="text-white px-4 py-3 rounded-2xl shadow-2xl transition-all duration-200 flex items-center gap-2 hover:scale-105 text-sm"
-                        style={{ backgroundColor: displayTheme.primaryColor }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = displayTheme.accentColor}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = displayTheme.primaryColor}
-                    >
-                        <div className="relative">
-                            <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
-                                <span className="font-bold text-xs" style={{ color: displayTheme.primaryColor }}>{getTotalItems()}</span>
+            {/* Mobile Layout */}
+            <div className="lg:hidden min-h-screen flex flex-col">
+                {/* Mobile Header - Transparent */}
+                <div className="bg-white/40 backdrop-blur-md border-b border-white/20">
+                    <div className="px-4 py-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div
+                                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                                    style={{
+                                        backgroundColor: displayTheme.primaryColor,
+                                    }}
+                                >
+                                    <ChefHat className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h1 className="text-lg font-bold text-gray-900">
+                                        {currentMenu.name}
+                                    </h1>
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <LanguageSelector
+                                    languages={languages}
+                                    selectedLanguage={selectedLanguage}
+                                    // showDropdown={showLanguageDropdown}
+                                    // onToggleDropdown={() =>
+                                    //     setShowLanguageDropdown(!showLanguageDropdown)
+                                    // }
+                                    onSelectLanguage={setSelectedLanguage}
+                                    isMobile={true}
+                                    theme={displayTheme}
+                                />
                             </div>
                         </div>
-                        <span className="font-semibold">View Order</span>
-                    </button>
+                    </div>
                 </div>
-            )}
+           
+                    {/* <SearchAndFilters
+                        searchTerm={searchTerm}
+                        onSearchChange={setSearchTerm}
+                        showFilters={showFilters}
+                        onToggleFilters={() => setShowFilters(!showFilters)}
+                        dietaryFilter={dietaryFilter}
+                        onDietaryFilterChange={setDietaryFilter}
+                        theme={displayTheme}
+                        isMobile={true}
+                    /> */}
+                
+                {/* Mobile Menu Items */}
+                <div className="px-4 py-4 pb-24 flex-1">
+                    <div className="text-center mb-6">
+                        <h1
+                            className="text-2xl font-bold mb-2"
+                            style={{ color: displayTheme.primaryColor }}
+                        >
+                            {currentMenu.name || 'Menu Name'}
+                        </h1>
+                        {currentMenu.description && (
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                                {currentMenu.description}
+                            </p>
+                        )}
+                    </div>
+
+                    {filteredItems.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-6">
+                            {/* Left Column */}
+                            <div className="space-y-6">
+                                {categories.map((category: any, index: number) => {
+                                    const categoryItems = getCategoryItems(category.id);
+                                    if (categoryItems.length === 0) return null;
+                                    
+                                    // Distribute categories: even indices go to left column
+                                    if (index % 2 === 0) {
+                                        return (
+                                            <div key={category.id} className="space-y-4">
+                                                <h2 className="text-lg font-bold border-b pb-2"
+                                                    style={{ color: displayTheme.primaryColor, borderColor: displayTheme.primaryColor + '40' }}>
+                                                    {category.name?.toUpperCase()}
+                                                </h2>
+                                                <div className="space-y-4">
+                                                    {categoryItems.map((item: any) => (
+                                                        <MenuItem key={item.id} item={item} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </div>
+                            
+                            {/* Right Column */}
+                            <div className="space-y-6">
+                                {categories.map((category: any, index: number) => {
+                                    const categoryItems = getCategoryItems(category.id);
+                                    if (categoryItems.length === 0) return null;
+                                    
+                                    // Distribute categories: odd indices go to right column
+                                    if (index % 2 === 1) {
+                                        return (
+                                            <div key={category.id} className="space-y-4">
+                                                <h2 className="text-lg font-bold border-b pb-2"
+                                                    style={{ color: displayTheme.primaryColor, borderColor: displayTheme.primaryColor + '40' }}>
+                                                    {category.name?.toUpperCase()}
+                                                </h2>
+                                                <div className="space-y-4">
+                                                    {categoryItems.map((item: any) => (
+                                                        <MenuItem key={item.id} item={item} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-16">
+                            <ChefHat className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                                No items found
+                            </h3>
+                            <p className="text-gray-500">
+                                Try adjusting your search or filters
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Mobile Menu Footer */}
+                <div className="px-4 py-6 text-center text-gray-600 text-xs leading-relaxed">
+                    <div className="flex flex-wrap justify-center items-center gap-4 text-xs mb-3">
+                        <span>{t('ai.dietary_vegan')}</span>
+                        <span>{t('ai.dietary_vegetarian')}</span>
+                        <span>{t('ai.dietary_gluten_free')}</span>
+                    </div>
+                </div>
+
+                {/* Mobile Bottom Cart Bar */}
+                {getTotalItems() > 0 && !showOrderModal && (
+                    <div className="fixed bottom-0 left-0 right-0 shadow-lg z-50">
+                        <div className="px-4 py-4">
+                            <button
+                                onClick={() => setShowOrderModal(true)}
+                                className="w-full text-white py-4 rounded-xl font-semibold text-base flex items-center justify-between shadow-sm"
+                                style={{
+                                    backgroundColor: displayTheme.primaryColor,
+                                }}
+                            >
+                                <div className="flex items-center gap-2 px-4">
+                                    <ShoppingCart className="w-5 h-5" />
+                                    <span>View Cart</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="bg-white/20 px-2 py-1 rounded-full text-sm">
+                                        {getTotalItems()}
+                                    </span>
+                                    <span>${getTotalPrice().toFixed(2)}</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Order Modal */}
             {showOrderModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-60 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
-                        {/* Modal Header */}
-                        <div 
-                            className="p-4 text-white flex items-center justify-between"
-                            style={{ backgroundColor: displayTheme.primaryColor }}
-                        >
-                            <div>
-                                <h2 className="text-lg font-bold">Your Order</h2>
-                                <p className="text-white/80 text-xs">{getTotalItems()} items</p>
-                            </div>
+                <div 
+                    className="fixed inset-0 bg-black/50 z-[60] flex items-end lg:items-center lg:justify-center"
+                    onClick={(e) => {
+                        // Close modal when clicking on backdrop
+                        if (e.target === e.currentTarget) {
+                            setShowOrderModal(false);
+                        }
+                    }}
+                >
+                    <div 
+                        className="bg-white/80 backdrop-blur-md rounded-t-3xl lg:rounded-2xl w-full lg:w-[500px] lg:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+                        onClick={(e) => {
+                            // Prevent event bubbling when clicking inside the modal
+                            e.stopPropagation();
+                        }}
+                    >
+                        <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: displayTheme.primaryColor + '20' }}>
+                            <h2 className="text-lg font-bold" style={{ color: displayTheme.primaryColor }}>
+                                {t('cart.cart_modal_title')}
+                            </h2>
                             <button
                                 onClick={() => setShowOrderModal(false)}
-                                className="text-white/80 hover:text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
+                                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                style={{ '--tw-ring-color': displayTheme.primaryColor } as React.CSSProperties}
                             >
-                                <X className="w-5 h-5" />
+                                <X className="w-5 h-5" style={{ color: displayTheme.primaryColor }} />
                             </button>
                         </div>
 
-                        {/* Order Items */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-96">
-                            {getCartItems().map((item) => (
-                                <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                                    <div 
-                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                                        style={{ 
-                                            background: `linear-gradient(to bottom right, ${displayTheme.primaryColor}20, ${displayTheme.accentColor}20)` 
+                        <div className="p-4 space-y-4 overflow-y-auto flex-1">
+                            <div className="space-y-3">
+                                {qrToken ? (
+                                    <div className="text-sm text-gray-600">
+                                        {t('cart.cart_modal_identify_table')}
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {t('cart.cart_modal_dropdown_title')}
+                                        </label>
+                                        <select
+                                            value={tableNumber}
+                                            onChange={(e) => setTableNumber(e.target.value)}
+                                            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 bg-white text-black transition-colors"
+                                            style={{
+                                                borderColor: displayTheme.primaryColor + '30',
+                                                '--tw-ring-color': displayTheme.primaryColor
+                                            } as React.CSSProperties}
+                                        >
+                                            <option value="" disabled>
+                                                {isTablesLoading
+                                                    ? t('cart.cart_modal_table_loading_text')
+                                                    : t('cart.cart_modal_dropdown')}
+                                            </option>
+                                            {tables.map((t) => (
+                                                <option key={t} value={t}>
+                                                    {t}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {!isTablesLoading && tables.length === 0 && (
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                {t('cart.cart_modal_dropdown_description')}
+                                                </p>
+                                            )}
+                                    </div>
+                                )}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        {t('cart.cart_modal_order_additional_notes')}
+                                    </label>
+                                    <textarea
+                                        value={specialRequests}
+                                        onChange={(e) => setSpecialRequests(e.target.value)}
+                                        rows={3}
+                                        placeholder={t('cart.cart_modal_order_additional_notes_placeholder')}
+                                        className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 text-black transition-colors"
+                                        style={{
+                                            borderColor: displayTheme.primaryColor + '30',
+                                            '--tw-ring-color': displayTheme.primaryColor
+                                        } as React.CSSProperties}
+                                    />
+                                </div>
+                                {orderFeedback && (
+                                    <div className="text-sm text-red-600">
+                                        {orderFeedback}
+                                    </div>
+                                )}
+                            </div>
+                            {Object.entries(cart).map(([itemId, quantity]) => {
+                                const item = currentMenu.categories
+                                    ?.flatMap((cat: any) => cat.items || [])
+                                    ?.find((item: any) => item.id === itemId);
+                                if (!item) return null;
+
+                                // Ensure price is treated as number
+                                const itemPrice =
+                                    typeof item.price === 'number'
+                                        ? item.price
+                                        : parseFloat(item.price) || 0;
+
+                                return (
+                                    <div
+                                        key={itemId}
+                                        className="flex items-center gap-3 p-3 rounded-xl border transition-colors"
+                                        style={{
+                                            backgroundColor: displayTheme.primaryColor + '05',
+                                            borderColor: displayTheme.primaryColor + '20'
                                         }}
                                     >
-                                        {item.image || '🍽️'}
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-semibold text-gray-900 text-sm">{item.name}</h3>
-                                        <p className="text-xs text-gray-600">€{item.price.toFixed(2)} each</p>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-1 border">
+                                        <div className="w-12 h-12 bg-gray-200 rounded-xl flex items-center justify-center text-lg">
+                                            {item.image || '🍽️'}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-medium text-sm text-black">
+                                                {item.name}
+                                            </h3>
+                                            <p className="text-gray-600 text-xs text-black">
+                                                {t('cart.cart_modal_order_item_price_desc', {
+                                                    price: itemPrice.toFixed(2),
+                                                })}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
                                             <button
-                                                onClick={() => removeFromCart(item.id)}
-                                                className="text-gray-500 hover:text-gray-700 p-1"
+                                                onClick={() => removeFromCart(itemId)}
+                                                className="w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center"
                                             >
                                                 <Minus className="w-3 h-3" />
                                             </button>
-                                            <span className="font-semibold min-w-6 text-center">{item.quantity}</span>
+                                            <span className="font-medium text-sm min-w-4 text-center text-black">
+                                                {quantity}
+                                            </span>
                                             <button
-                                                onClick={() => addToCart(item.id)}
-                                                className="text-gray-500 hover:text-gray-700 p-1"
+                                                onClick={() => addToCart(itemId)}
+                                                className="w-6 h-6 rounded-full flex items-center justify-center text-white"
+                                                style={{
+                                                    backgroundColor: displayTheme.primaryColor,
+                                                }}
                                             >
                                                 <Plus className="w-3 h-3" />
                                             </button>
                                         </div>
                                         <div className="text-right">
-                                            <p className="font-bold" style={{ color: displayTheme.accentColor }}>
-                                                €{(item.price * item.quantity).toFixed(2)}
-                                            </p>
+                                            <span
+                                                className="font-bold text-sm"
+                                                style={{
+                                                    color: displayTheme.primaryColor,
+                                                }}
+                                            >
+                                                ${(item.price * quantity).toFixed(2)}
+                                            </span>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
-                        {/* Order Summary */}
-                        <div className="p-4 border-t border-gray-200 bg-gray-50">
-                            <div className="flex items-center justify-between mb-3">
-                                <span className="text-base font-semibold text-gray-900">Total</span>
-                                <span className="text-xl font-bold" style={{ color: displayTheme.accentColor }}>
-                                    €{getTotalPrice().toFixed(2)}
+                        <div className="p-4 border-t" style={{ 
+                            borderColor: displayTheme.primaryColor + '20',
+                            backgroundColor: displayTheme.primaryColor + '05'
+                        }}>
+                            <div className="flex justify-between items-center mb-4">
+                                <span className="text-lg font-semibold text-black">
+                                    {t('cart.cart_modal_order_price_total')}
+                                </span>
+                                <span
+                                    className="text-xl font-bold"
+                                    style={{ color: displayTheme.primaryColor }}
+                                >
+                                    ${getTotalPrice().toFixed(2)}
                                 </span>
                             </div>
                             <button
-                                className="w-full text-white py-3 rounded-xl font-semibold text-sm transition-all duration-200 hover:scale-105 shadow-lg"
-                                style={{ backgroundColor: displayTheme.primaryColor }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = displayTheme.accentColor}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = displayTheme.primaryColor}
+                                disabled={
+                                    isPlacingOrder ||
+                                    getTotalItems() === 0 ||
+                                    (!qrToken && !tableNumber)
+                                }
+                                onClick={placeOrder}
+                                className={`w-full text-white py-4 rounded-xl font-semibold text-base ${
+                                    isPlacingOrder
+                                        ? 'opacity-70 cursor-not-allowed'
+                                        : ''
+                                }`}
+                                style={{
+                                    backgroundColor: displayTheme.primaryColor,
+                                }}
                             >
-                                Proceed to Checkout
+                                {isPlacingOrder
+                                    ? t('cart.cart_modal_order_btn_loading')
+                                    : t('cart.cart_modal_order_btn')}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Floating AI Chat Button */}
-            <div className="fixed bottom-6 right-6 z-50">
-                {!showChat ? (
-                    <AIChatButton onClick={() => setShowChat(true)} />
-                ) : (
-                    <ChatInterface
-                        messages={chatMessages}
-                        inputValue={chatInput}
-                        onInputChange={setChatInput}
-                        onSend={handleSendMessage}
-                        onClose={() => setShowChat(false)}
-                        onQuickAction={handleQuickAction}
-                        isLoading={isChatLoading}
-                        selectedLanguageFlag={selectedLanguage.flag}
-                    />
-                )}
-            </div>
+            {/* AI Chat */}
+            {!showOrderModal && (
+                <div className="fixed bottom-20 right-4 z-50">
+                    {!showChat ? (
+                        <AIChatButton onClick={() => setShowChat(true)} />
+                    ) : (
+                        <ChatInterface
+                            messages={chatMessages}
+                            inputValue={chatInput}
+                            onInputChange={setChatInput}
+                            onSend={handleSendMessage}
+                            onClose={() => setShowChat(false)}
+                            onQuickAction={handleQuickAction}
+                            isLoading={isChatLoading}
+                            selectedLanguageFlag={selectedLanguage.flag}
+                        />
+                    )}
+                </div>
+            )}
 
-
+            {/* Translation Loading */}
+            {isTranslating && (
+                <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center">
+                    <div className="bg-white rounded-2xl p-6 mx-4 max-w-sm">
+                        <div className="text-center">
+                            <Globe
+                                className="w-8 h-8 mx-auto mb-3 animate-spin"
+                                style={{ color: displayTheme.primaryColor }}
+                            />
+                            <h3 className="font-semibold mb-1">
+                                Translating Menu
+                            </h3>
+                            <p className="text-gray-600 text-sm">
+                                Please wait...
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

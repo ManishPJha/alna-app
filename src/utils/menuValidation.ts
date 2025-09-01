@@ -1,72 +1,21 @@
-import { MenuFormData } from '@/types/menu';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { MenuFormData, ValidationError, ValidationResult } from '@/types/menu';
 
-export interface ValidationError {
-    field: string;
-    message: string;
-}
-
-export const validateMenuForm = (data: MenuFormData): ValidationError[] => {
+export function validateBeforeSubmit(data: MenuFormData): ValidationResult {
     const errors: ValidationError[] = [];
 
-    // Basic menu information validation
-    if (!data.name || data.name.trim().length === 0) {
+    // Basic required fields
+    if (!data.name || data.name.trim() === '') {
         errors.push({
             field: 'name',
             message: 'Menu name is required',
         });
-    } else if (data.name.trim().length < 2) {
-        errors.push({
-            field: 'name',
-            message: 'Menu name must be at least 2 characters',
-        });
-    } else if (data.name.trim().length > 100) {
-        errors.push({
-            field: 'name',
-            message: 'Menu name cannot exceed 100 characters',
-        });
     }
 
-    if (!data.restaurantId || data.restaurantId.trim().length === 0) {
+    if (!data.restaurantId || data.restaurantId.trim() === '') {
         errors.push({
             field: 'restaurantId',
-            message: 'Please select a restaurant',
-        });
-    }
-
-    if (data.description && data.description.length > 500) {
-        errors.push({
-            field: 'description',
-            message: 'Description cannot exceed 500 characters',
-        });
-    }
-
-    // Theme validation
-    if (!isValidHexColor(data.theme.primaryColor)) {
-        errors.push({
-            field: 'theme.primaryColor',
-            message: 'Primary color must be a valid hex color (e.g., #1f2937)',
-        });
-    }
-
-    if (!isValidHexColor(data.theme.backgroundColor)) {
-        errors.push({
-            field: 'theme.backgroundColor',
-            message:
-                'Background color must be a valid hex color (e.g., #f9fafb)',
-        });
-    }
-
-    if (!isValidHexColor(data.theme.accentColor)) {
-        errors.push({
-            field: 'theme.accentColor',
-            message: 'Accent color must be a valid hex color (e.g., #ef4444)',
-        });
-    }
-
-    if (!data.theme.fontFamily || data.theme.fontFamily.trim().length === 0) {
-        errors.push({
-            field: 'theme.fontFamily',
-            message: 'Font family is required',
+            message: 'Restaurant selection is required',
         });
     }
 
@@ -79,110 +28,128 @@ export const validateMenuForm = (data: MenuFormData): ValidationError[] => {
     } else {
         // Validate each category
         data.categories.forEach((category, categoryIndex) => {
-            if (!category.name || category.name.trim().length === 0) {
+            if (!category.name || category.name.trim() === '') {
                 errors.push({
                     field: `categories.${categoryIndex}.name`,
                     message: `Category ${categoryIndex + 1} name is required`,
                 });
-            } else if (category.name.trim().length > 50) {
-                errors.push({
-                    field: `categories.${categoryIndex}.name`,
-                    message: `Category ${
-                        categoryIndex + 1
-                    } name cannot exceed 50 characters`,
-                });
             }
 
-            if (category.description && category.description.length > 200) {
-                errors.push({
-                    field: `categories.${categoryIndex}.description`,
-                    message: `Category ${
-                        categoryIndex + 1
-                    } description cannot exceed 200 characters`,
-                });
-            }
-
-            // Validate items in each category
+            // Validate items in category
             if (!category.items || category.items.length === 0) {
                 errors.push({
                     field: `categories.${categoryIndex}.items`,
-                    message: `Category "${category.name}" must have at least one item`,
+                    message: `Category "${category.name}" must have at least one menu item`,
                 });
             } else {
                 category.items.forEach((item, itemIndex) => {
-                    if (!item.name || item.name.trim().length === 0) {
+                    if (!item.name || item.name.trim() === '') {
                         errors.push({
                             field: `categories.${categoryIndex}.items.${itemIndex}.name`,
                             message: `Item ${itemIndex + 1} in "${
                                 category.name
-                            }" requires a name`,
-                        });
-                    } else if (item.name.trim().length > 100) {
-                        errors.push({
-                            field: `categories.${categoryIndex}.items.${itemIndex}.name`,
-                            message: `Item ${itemIndex + 1} in "${
-                                category.name
-                            }" name cannot exceed 100 characters`,
+                            }" needs a name`,
                         });
                     }
 
-                    if (item.description && item.description.length > 300) {
-                        errors.push({
-                            field: `categories.${categoryIndex}.items.${itemIndex}.description`,
-                            message: `Item ${itemIndex + 1} in "${
-                                category.name
-                            }" description cannot exceed 300 characters`,
-                        });
-                    }
-
-                    if (item.price < 0) {
+                    if (item.price === undefined || item.price < 0) {
                         errors.push({
                             field: `categories.${categoryIndex}.items.${itemIndex}.price`,
-                            message: `Item ${itemIndex + 1} in "${
-                                category.name
-                            }" price cannot be negative`,
-                        });
-                    } else if (item.price > 99999) {
-                        errors.push({
-                            field: `categories.${categoryIndex}.items.${itemIndex}.price`,
-                            message: `Item ${itemIndex + 1} in "${
-                                category.name
-                            }" price cannot exceed 99,999`,
+                            message: `Item "${item.name}" needs a valid price`,
                         });
                     }
                 });
             }
         });
+    }
 
-        // Check for duplicate category names
-        const categoryNames = data.categories.map((cat) =>
-            cat.name.trim().toLowerCase()
-        );
-        const duplicateCategories = categoryNames.filter(
-            (name, index) => categoryNames.indexOf(name) !== index
-        );
-
-        if (duplicateCategories.length > 0) {
+    // Theme validation
+    if (data.theme) {
+        if (!data.theme.primaryColor) {
             errors.push({
-                field: 'categories',
-                message: 'Category names must be unique',
+                field: 'theme.primaryColor',
+                message: 'Primary color is required',
+            });
+        }
+
+        if (!data.theme.backgroundColor) {
+            errors.push({
+                field: 'theme.backgroundColor',
+                message: 'Background color is required',
+            });
+        }
+
+        if (!data.theme.accentColor) {
+            errors.push({
+                field: 'theme.accentColor',
+                message: 'Accent color is required',
+            });
+        }
+
+        if (!data.theme.fontFamily) {
+            errors.push({
+                field: 'theme.fontFamily',
+                message: 'Font family is required',
             });
         }
     }
 
-    return errors;
-};
+    // FAQs validation (optional but if provided, should be valid)
+    if (data.faqs) {
+        data.faqs.forEach((faq, faqIndex) => {
+            if (faq.question && !faq.answer) {
+                errors.push({
+                    field: `faqs.${faqIndex}.answer`,
+                    message: `FAQ ${faqIndex + 1} question needs an answer`,
+                });
+            }
 
-const isValidHexColor = (color: string): boolean => {
-    return /^#[0-9A-Fa-f]{6}$/.test(color);
-};
+            if (faq.answer && !faq.question) {
+                errors.push({
+                    field: `faqs.${faqIndex}.question`,
+                    message: `FAQ ${faqIndex + 1} answer needs a question`,
+                });
+            }
+        });
+    }
 
-export const validateBeforeSubmit = (
-    data: MenuFormData
-): { isValid: boolean; errors: ValidationError[] } => {
-    const errors = validateMenuForm(data);
     return {
         isValid: errors.length === 0,
         errors,
     };
-};
+}
+
+export function validateCategory(category: any): ValidationError[] {
+    const errors: ValidationError[] = [];
+
+    if (!category.name || category.name.trim() === '') {
+        errors.push({
+            field: 'name',
+            message: 'Category name is required',
+        });
+    }
+
+    return errors;
+}
+
+export function validateMenuItem(item: any): ValidationError[] {
+    const errors: ValidationError[] = [];
+
+    if (!item.name || item.name.trim() === '') {
+        errors.push({
+            field: 'name',
+            message: 'Item name is required',
+        });
+    }
+
+    if (item.price === undefined || item.price < 0) {
+        errors.push({
+            field: 'price',
+            message: 'Valid price is required',
+        });
+    }
+
+    return errors;
+}
+
+export type { ValidationError, ValidationResult };

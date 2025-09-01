@@ -14,10 +14,9 @@ import {
     ChevronDown,
     ChevronUp,
     Edit,
-    Eye,
     Store,
     Trash2,
-    Upload
+    Upload,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -161,13 +160,13 @@ export function RestaurantsTable({
                 header: 'Actions',
                 cell: ({ row }) => (
                     <div className="flex items-center space-x-2">
-                        <button
+                        {/* <button
                             onClick={() => onView(row.original.id)}
                             className="text-green-600 hover:text-green-900 transition-colors p-1 hover:bg-green-50 rounded"
                             title="View Details"
                         >
                             <Eye className="h-4 w-4" />
-                        </button>
+                        </button> */}
                         <button
                             onClick={() => onEdit(row.original)}
                             className="text-indigo-600 hover:text-indigo-900 transition-colors p-1 hover:bg-indigo-50 rounded"
@@ -187,7 +186,7 @@ export function RestaurantsTable({
                 enableSorting: false,
             },
         ],
-        [onEdit, onDelete, onView, onUploadMenu]
+        [onEdit, onDelete, onUploadMenu]
     );
 
     const table = useReactTable({

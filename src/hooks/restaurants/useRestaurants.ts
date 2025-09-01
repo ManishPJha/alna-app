@@ -10,12 +10,17 @@ import { toast } from 'sonner';
 export function useRestaurants(filters?: RestaurantFilters) {
     return useQuery({
         queryKey: queryKeys.restaurants.list(filters),
-        queryFn: () => restaurantService.getAll(filters),
+        queryFn: () =>
+            restaurantService.getAll({
+                ...filters,
+                sortBy: filters?.sortBy || 'createdAt',
+                sortOrder: filters?.sortOrder || 'desc',
+            }),
         select: (data) => ({
             restaurants: data.data?.restaurants || [],
             pagination: data.data?.pagination,
         }),
-        placeholderData: (previousData) => previousData, // Keep previous data while loading
+        placeholderData: (previousData) => previousData,
     });
 }
 

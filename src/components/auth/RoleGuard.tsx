@@ -30,8 +30,7 @@ export function RoleGuard({
             return;
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const userRole = (session.user as any).role as UserRole;
+        const userRole = session.user.role;
 
         if (!allowedRoles.includes(userRole)) {
             router.push(fallbackPath);

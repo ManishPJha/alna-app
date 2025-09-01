@@ -1,0 +1,48 @@
+{
+    "filter_input_placeholder": "料理を検索",
+    "filters": {
+        "all": "すべて",
+        "vegetarian": "ベジタリアン",
+        "vegan": "ヴィーガン",
+        "gluten-free": "グルテンフリー",
+        "spicy": "辛い"
+    },
+    "cart": {
+        "view_cart_btn": "カートを見る",
+        "cart_modal_title": "ご注文",
+        "cart_modal_dropdown": "テーブルを選択",
+        "cart_modal_identify_table": "QRコードでテーブルを識別しました。",
+        "cart_modal_table_loading_text": "テーブルを読み込み中...",
+        "cart_modal_dropdown_title": "テーブル番号",
+        "cart_modal_dropdown_description": "注文するテーブルを選択してください",
+        "cart_modal_order_additional_notes": "特別リクエスト（任意）",
+        "cart_modal_order_additional_notes_placeholder": "キッチンへのメモ...",
+        "empty_cart": "カートは空です",
+        "empty_cart_description": "商品を追加してください！",
+        "cart_modal_order_btn": "注文する",
+        "cart_modal_order_btn_loading": "注文中...",
+        "cart_modal_order_price_total": "合計",
+        "cart_modal_order_item_price_desc": "1つあたり${{price}}"
+    },
+    "empty_state": {
+        "no_items_found": "アイテムが見つかりません",
+        "try_adjusting_filters": "検索やフィルターを調整してみてください"
+    },
+    "loading": {
+        "translating_menu": "メニューを翻訳中",
+        "please_wait": "お待ちください..."
+    },
+    "ai": {
+        "ai_chat_btn": "AIに質問",
+        "ai_chat_title": "AIに質問",
+        "ai_chat_online_status_text": "オンライン",
+        "ai_chat_offline_status_text": "オフライン",
+        "ai_chat_placeholder": "メニューについて何でも聞いてください",
+        "ai_chat_loading_text": "考え中...",
+        "ai_chat_welcome_message": "こんにちは！私はあなたのAIメニューアシスタントです。料理を見つけたり、材料を説明したり、組み合わせを提案したり、メニューについての質問に答えたりできます！",
+        "ai_chat_error_message": "申し訳ございませんが、現在リクエストの処理に問題があります。しばらくしてからもう一度お試しください。",
+        "dietary_vegan": "VG = ビーガン",
+        "dietary_vegetarian": "V = ベジタリアン",
+        "dietary_gluten_free": "GF = グルテンフリー"
+    }
+}

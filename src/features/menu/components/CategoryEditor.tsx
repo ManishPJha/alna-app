@@ -11,39 +11,46 @@ interface CategoryEditorProps {
     categoryIndex: number;
     form: UseFormReturn<MenuFormData>;
     onDelete: () => void;
+    addItem: () => void;
 }
 
 export function CategoryEditor({
     categoryIndex,
     form,
     onDelete,
+    addItem,
 }: CategoryEditorProps) {
     const [isExpanded, setIsExpanded] = useState(true);
 
-    const {
-        fields: itemFields,
-        append: appendItem,
-        remove: removeItem,
-    } = useFieldArray({
+    // const {
+    //     fields: itemFields,
+    //     append: appendItem,
+    //     remove: removeItem,
+    // } = useFieldArray({
+    //     control: form.control,
+    //     name: `categories.${categoryIndex}.items`,
+    // });
+
+    // const addItem = () => {
+    //     const newItem = {
+    //         id: `temp-item-${Date.now()}`,
+    //         name: 'New Item',
+    //         description: '',
+    //         price: 0,
+    //         isVegetarian: false,
+    //         isVegan: false,
+    //         isGlutenFree: false,
+    //         isSpicy: false,
+    //         isAvailable: true,
+    //         displayOrder: itemFields.length + 1,
+    //     };
+    //     appendItem(newItem);
+    // };
+
+    const { fields: itemFields, remove: removeItem } = useFieldArray({
         control: form.control,
         name: `categories.${categoryIndex}.items`,
     });
-
-    const addItem = () => {
-        const newItem = {
-            id: `temp-item-${Date.now()}`,
-            name: 'New Item',
-            description: '',
-            price: 0,
-            isVegetarian: false,
-            isVegan: false,
-            isGlutenFree: false,
-            isSpicy: false,
-            isAvailable: true,
-            displayOrder: itemFields.length + 1,
-        };
-        appendItem(newItem);
-    };
 
     return (
         <Card className="mb-6 hover:shadow-xl transition-all duration-300">
@@ -133,8 +140,7 @@ export function CategoryEditor({
                                 </Button>
                             </div>
                         ) : (
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            itemFields.map((item: any, itemIndex) => (
+                            itemFields.map((item, itemIndex) => (
                                 <ItemEditor
                                     key={item.id}
                                     itemIndex={itemIndex}

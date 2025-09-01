@@ -5,7 +5,11 @@ import { MenusTable } from '@/components/tables/MenuTable';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
-import { useDeleteMenu, useMenus } from '@/hooks/menus/useMenus';
+import {
+    useDeleteMenu,
+    useDuplicateMenu,
+    useMenus,
+} from '@/hooks/menus/useMenus';
 import { useRestaurants } from '@/hooks/restaurants/useRestaurants';
 import { Menu } from '@/types/api';
 import { PaginationState, SortingState } from '@tanstack/react-table';
@@ -27,7 +31,10 @@ export default function MenusPage({ currentUser }: MenusPageProps) {
         pageIndex: 0,
         pageSize: 10,
     });
-    const [sorting, setSorting] = useState<SortingState>([]);
+    const [sorting, setSorting] = useState<SortingState>([
+        { id: 'createdAt', desc: true },
+    ]);
+    const [duplicateId, setDuplicateId] = useState<string | null>(null);
 
     // Queries and mutations with server-side params
     const { data: menusData, isLoading } = useMenus({
@@ -42,10 +49,11 @@ export default function MenusPage({ currentUser }: MenusPageProps) {
     const { data: restaurantsData } = useRestaurants();
 
     const deleteMutation = useDeleteMenu();
+    const duplicateMenuMutation = useDuplicateMenu();
 
-    const menus = menusData?.data?.menus || [];
+    const menus = menusData?.menus || [];
     const restaurants = restaurantsData?.restaurants || [];
-    const paginationInfo = menusData?.data?.pagination || {
+    const paginationInfo = menusData?.pagination || {
         total: 0,
         page: 1,
         limit: 10,
@@ -67,8 +75,25 @@ export default function MenusPage({ currentUser }: MenusPageProps) {
         window.open(`/menu/${menu.id}`, '_blank');
     };
 
-    const handleDuplicateMenu = (menu: Menu) => {
-        router.push(`/menus/${menu.id}/duplicate`);
+    const handleDuplicateMenu = async (menu: Menu) => {
+        setDuplicateId(menu.id);
+    };
+
+    const handleDuplicateMenuConfirm = async () => {
+        if (!duplicateId) return;
+        try {
+            const duplicateMenu = await duplicateMenuMutation.mutateAsync({
+                id: duplicateId,
+                data: {},
+            });
+
+            if (duplicateMenu.success) {
+                router.push(`/menus/${duplicateMenu.data.id}/edit`);
+                setDuplicateId(null);
+            }
+        } catch (error) {
+            // Error handled by mutation
+        }
     };
 
     const handleDelete = async () => {
@@ -166,6 +191,17 @@ export default function MenusPage({ currentUser }: MenusPageProps) {
                 cancelText="Cancel"
                 loading={deleteMutation.isPending}
                 destructive={true}
+            />
+
+            <ConfirmDialog
+                open={!!duplicateId}
+                onOpenChange={() => setDuplicateId(null)}
+                onConfirm={handleDuplicateMenuConfirm}
+                title="Duplicate Menu"
+                description="Are you sure you want to duplicate this menu? This action cannot be undone and will create a new menu with the same items and categories."
+                confirmText="Duplicate Menu"
+                cancelText="Cancel"
+                loading={duplicateMenuMutation.isPending}
             />
         </div>
     );

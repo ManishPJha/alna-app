@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 export async function GET(_request: Request) {
     const session = await auth();
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
         return new NextResponse(
             JSON.stringify({
                 status: 'fail',

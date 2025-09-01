@@ -3,6 +3,7 @@
 import { logOutAction } from '@/actions/auth';
 import AppImage from '@/shared/components/ui/image';
 import { formatText } from '@/utils/formatter';
+import { useQueryClient } from '@tanstack/react-query';
 import { Session } from 'next-auth';
 
 export const DashboardHeader = ({
@@ -10,6 +11,14 @@ export const DashboardHeader = ({
 }: {
     currentUser?: Session['user'];
 }) => {
+    const queryClient = useQueryClient();
+
+    const handleLogout = async () => {
+        queryClient.clear();
+
+        await logOutAction();
+    };
+
     return (
         <header className="bg-white shadow-lg border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
             <div className="px-4 sm:px-6 lg:px-8">
@@ -46,7 +55,7 @@ export const DashboardHeader = ({
                             {formatText(currentUser?.role || '')}
                         </span>
                         <button
-                            onClick={() => logOutAction()}
+                            onClick={handleLogout}
                             className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors"
                         >
                             Logout

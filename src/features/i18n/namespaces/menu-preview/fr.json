@@ -1,0 +1,48 @@
+{
+    "filter_input_placeholder": "Rechercher un plat",
+    "filters": {
+        "all": "Tous",
+        "vegetarian": "Végétarien",
+        "vegan": "Végétalien",
+        "gluten-free": "Sans gluten",
+        "spicy": "Épicé"
+    },
+    "cart": {
+        "view_cart_btn": "Voir le panier",
+        "cart_modal_title": "Votre commande",
+        "cart_modal_dropdown": "Choisir une table",
+        "cart_modal_identify_table": "Table identifiée via code QR.",
+        "cart_modal_table_loading_text": "Chargement des tables...",
+        "cart_modal_dropdown_title": "Numéro de table",
+        "cart_modal_dropdown_description": "Sélectionnez une table pour passer votre commande",
+        "cart_modal_order_additional_notes": "Demandes spéciales (optionnel)",
+        "cart_modal_order_additional_notes_placeholder": "Notes pour la cuisine...",
+        "empty_cart": "Votre panier est vide",
+        "empty_cart_description": "Ajoutez des articles dedans !",
+        "cart_modal_order_btn": "Passer la commande",
+        "cart_modal_order_btn_loading": "Commande en cours...",
+        "cart_modal_order_price_total": "Total",
+        "cart_modal_order_item_price_desc": "${{price}} chacun"
+    },
+    "empty_state": {
+        "no_items_found": "Aucun élément trouvé",
+        "try_adjusting_filters": "Essayez d'ajuster votre recherche ou vos filtres"
+    },
+    "loading": {
+        "translating_menu": "Traduction du menu",
+        "please_wait": "Veuillez patienter..."
+    },
+    "ai": {
+        "ai_chat_btn": "Demander à l'IA",
+        "ai_chat_title": "Demander à l'IA",
+        "ai_chat_online_status_text": "En ligne",
+        "ai_chat_offline_status_text": "Hors ligne",
+        "ai_chat_placeholder": "Posez-moi vos questions sur le menu",
+        "ai_chat_loading_text": "Réflexion en cours...",
+        "ai_chat_welcome_message": "Bonjour ! Je suis votre assistant de menu IA. Je peux vous aider à trouver des plats, expliquer les ingrédients, suggérer des accords ou répondre à toutes vos questions sur notre menu !",
+        "ai_chat_error_message": "Je suis désolé, j'ai des difficultés à traiter votre demande en ce moment. Veuillez réessayer dans un instant.",
+        "dietary_vegan": "VG = Végétalien",
+        "dietary_vegetarian": "V = Végétarien",
+        "dietary_gluten_free": "GF = Sans Gluten"
+    }
+}

@@ -34,7 +34,11 @@ async function getDashboardData(userId: string, userRole: string) {
         db.restaurant.count({ where: whereClause }),
 
         // Total users count (admin only)
-        userRole === 'ADMIN' ? db.user.count({ where: { isActive: true } }) : 0,
+        userRole === 'ADMIN'
+            ? db.user.count({
+                  where: { isActive: true, role: { in: ['MANAGER', 'USER'] } },
+              })
+            : 0,
 
         // Total QR codes count
         db.qRCode.count({
@@ -60,7 +64,7 @@ async function getDashboardData(userId: string, userRole: string) {
         // Recent users (admin only)
         userRole === 'ADMIN'
             ? db.user.findMany({
-                  where: { isActive: true },
+                  where: { isActive: true, role: { in: ['MANAGER', 'USER'] } },
                   orderBy: { createdAt: 'desc' },
                   take: 5,
                   include: {
@@ -114,7 +118,6 @@ async function getActiveMenusCount(whereClause: any) {
 
 async function getMonthlyStats(userRole: string, userId: string) {
     const now = new Date();
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
     // Get data for the last 6 months
     const months = Array.from({ length: 6 }, (_, i) => {

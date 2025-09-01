@@ -2,7 +2,7 @@
 'use client';
 
 import { ManagerForm } from '@/components/forms/manager-form';
-import { ManagersTable } from '@/components/tables/managers-table';
+import { ManagersTable } from '@/components/tables/ManagersTable';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
@@ -39,7 +39,9 @@ export default function ManagersPage({ currentUser }: ManagersPageProps) {
         pageIndex: 0,
         pageSize: 10,
     });
-    const [sorting, setSorting] = useState<SortingState>([]);
+    const [sorting, setSorting] = useState<SortingState>([
+        { id: 'createdAt', desc: true },
+    ]);
 
     // Queries and mutations with server-side params
     const { data: usersData, isLoading } = useUsers({
@@ -47,8 +49,7 @@ export default function ManagersPage({ currentUser }: ManagersPageProps) {
         limit: pagination.pageSize,
         search: searchQuery,
         sortBy: sorting[0]?.id as 'name' | 'email' | 'createdAt' | 'updatedAt',
-        // sortOrder: sorting[0]?.desc ? 'desc' : 'asc',
-        sortOrder: 'desc',
+        sortOrder: sorting[0]?.desc ? 'desc' : 'asc',
     });
 
     // Get restaurants for the form dropdown

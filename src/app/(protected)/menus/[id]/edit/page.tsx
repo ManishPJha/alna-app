@@ -5,6 +5,7 @@ import { useMenuForm } from '@/hooks/menus/useMenuForm';
 import { useMenu, useUpdateMenu } from '@/hooks/menus/useMenus';
 import { useRestaurants } from '@/hooks/restaurants/useRestaurants';
 import { MenuDataTransformer } from '@/service/menuDataTransformer';
+import { Button } from '@/shared/components/ui/button';
 import { MenuFormData } from '@/types/menu';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
@@ -26,7 +27,7 @@ export default function EditMenuPage() {
 
     // Transform the API response to form data
     const transformedMenu = useMemo(() => {
-        if (!menuResponse?.data) return null;
+        if (!menuResponse) return null;
 
         console.log('Raw API response:', menuResponse);
 
@@ -81,7 +82,7 @@ export default function EditMenuPage() {
     }
 
     // Error state
-    if (menuError || !menuResponse?.success) {
+    if (menuError || !menuResponse) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
                 <div className="text-center max-w-md">
@@ -93,13 +94,13 @@ export default function EditMenuPage() {
                             The menu you&apos;re looking for doesn&apos;t exist
                             or has been deleted.
                         </p>
-                        <button
+                        <Button
                             onClick={() => router.push('/menus')}
                             className="flex items-center justify-center mx-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                         >
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Back to Menus
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -120,19 +121,19 @@ export default function EditMenuPage() {
                             check the browser console for details.
                         </p>
                         <div className="flex space-x-4 justify-center">
-                            <button
+                            <Button
                                 onClick={() => window.location.reload()}
                                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                             >
                                 Retry
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={() => router.push('/menus')}
                                 className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                             >
                                 <ArrowLeft className="w-4 h-4 mr-2" />
                                 Back to Menus
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -145,13 +146,13 @@ export default function EditMenuPage() {
             <div className="h-screen bg-gray-50">
                 <div className="bg-white border-b border-gray-200 px-6 py-4">
                     <nav className="flex items-center space-x-4 text-sm">
-                        <button
+                        <Button
                             onClick={() => router.push('/menus')}
                             className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
                         >
                             <ArrowLeft className="w-4 h-4 mr-2" />
                             Back to Menus
-                        </button>
+                        </Button>
                         <span className="text-gray-400">/</span>
                         <span className="text-gray-900 font-semibold">
                             Edit Menu: {transformedMenu.name}

@@ -1,0 +1,48 @@
+{
+    "filter_input_placeholder": "搜索食物",
+    "filters": {
+        "all": "全部",
+        "vegetarian": "素食",
+        "vegan": "纯素",
+        "gluten-free": "无麸质",
+        "spicy": "辣"
+    },
+    "cart": {
+        "view_cart_btn": "查看购物车",
+        "cart_modal_title": "您的订单",
+        "cart_modal_dropdown": "选择桌号",
+        "cart_modal_identify_table": "通过二维码识别桌号。",
+        "cart_modal_table_loading_text": "正在加载桌号...",
+        "cart_modal_dropdown_title": "桌号",
+        "cart_modal_dropdown_description": "选择桌号以下单",
+        "cart_modal_order_additional_notes": "特殊要求（可选）",
+        "cart_modal_order_additional_notes_placeholder": "给厨房的备注...",
+        "empty_cart": "您的购物车是空的",
+        "empty_cart_description": "添加一些商品吧！",
+        "cart_modal_order_btn": "下单",
+        "cart_modal_order_btn_loading": "下单中...",
+        "cart_modal_order_price_total": "总计",
+        "cart_modal_order_item_price_desc": "每个 ${{price}}"
+    },
+    "empty_state": {
+        "no_items_found": "未找到商品",
+        "try_adjusting_filters": "请尝试调整您的搜索或筛选条件"
+    },
+    "loading": {
+        "translating_menu": "正在翻译菜单",
+        "please_wait": "请稍候..."
+    },
+    "ai": {
+        "ai_chat_btn": "询问AI",
+        "ai_chat_title": "询问AI",
+        "ai_chat_online_status_text": "在线",
+        "ai_chat_offline_status_text": "离线",
+        "ai_chat_placeholder": "问我关于菜单的任何问题",
+        "ai_chat_loading_text": "思考中...",
+        "ai_chat_welcome_message": "你好！我是你的AI菜单助手。我可以帮你找到菜品、解释配料、建议搭配或回答关于我们菜单的任何问题！",
+        "ai_chat_error_message": "抱歉，我现在处理您的请求时遇到了问题。请稍后再试。",
+        "dietary_vegan": "VG = 纯素",
+        "dietary_vegetarian": "V = 素食",
+        "dietary_gluten_free": "GF = 无麸质"
+    }
+}

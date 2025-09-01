@@ -14,7 +14,7 @@ const LayoutComponent = ({
     excludePaths: string[];
 }) => {
     const pathname = usePathname();
-    
+
     // Check if current path is a menu page
     const isMenuPage = pathname.startsWith('/menu/');
 
