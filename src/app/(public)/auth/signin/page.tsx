@@ -2,7 +2,6 @@
 
 import AppImage from '@/shared/components/ui/image';
 import { SignInActionPayload } from '@/types/actions';
-import { createServiceContext } from '@/utils/service-utils';
 import { Eye, EyeOff, Lock, Mail, Utensils } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -18,8 +17,6 @@ export default function SignIn() {
 
     const router = useRouter();
 
-    const { log, handleError } = createServiceContext('signInAction');
-
     const signInAction = async (payload: SignInActionPayload) => {
         const result = await signIn('credentials', {
             email: payload.email,
@@ -28,9 +25,7 @@ export default function SignIn() {
         });
 
         if (result?.error) {
-            log.error('signInAction error -', result.error);
-            setError(result.error);
-            handleError('signInAction', result.error);
+            setError('Invalid email or password');
         }
 
         return result;

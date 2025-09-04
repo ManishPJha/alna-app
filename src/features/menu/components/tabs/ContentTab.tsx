@@ -60,36 +60,6 @@ export function ContentTab({ form }: ContentTabProps) {
         appendCategory(newCategory);
     }, [appendCategory, watchedCategories.length]);
 
-    // 🔹 Global Add Item (adds to last category)
-    const addItem = useCallback(() => {
-        if (watchedCategories.length === 0) {
-            // If no categories, create one first
-            addCategory();
-            return;
-        }
-
-        const lastCategoryIndex = watchedCategories.length - 1;
-        const path = `categories.${lastCategoryIndex}.items` as const;
-
-        form.setValue(path, [
-            ...(watchedCategories[lastCategoryIndex]?.items || []),
-            {
-                id: `temp-item-${Date.now()}`,
-                name: 'New Item',
-                description: '',
-                price: 0,
-                isVegetarian: false,
-                isVegan: false,
-                isGlutenFree: false,
-                isSpicy: false,
-                isAvailable: true,
-                displayOrder:
-                    (watchedCategories[lastCategoryIndex]?.items?.length || 0) +
-                    1,
-            },
-        ]);
-    }, [watchedCategories, addCategory, form]);
-
     useEffect(() => {
         if (bottomRef.current) {
             bottomRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -149,7 +119,6 @@ export function ContentTab({ form }: ContentTabProps) {
                                 categoryIndex={categoryIndex}
                                 form={form}
                                 onDelete={() => removeCategory(categoryIndex)}
-                                addItem={addItem}
                             />
                         ))}
 
@@ -158,17 +127,6 @@ export function ContentTab({ form }: ContentTabProps) {
                             className="flex items-center space-x-2 justify-center"
                             ref={bottomRef}
                         >
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={addItem}
-                                className="text-black hover:bg-white/10 border-dashed"
-                                type="button"
-                            >
-                                <Plus className="w-4 h-4 mr-1" />
-                                Add Item
-                            </Button>
-
                             <Button
                                 variant="outline"
                                 size="sm"

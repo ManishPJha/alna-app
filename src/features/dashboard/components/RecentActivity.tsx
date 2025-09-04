@@ -1,12 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatDate } from '@/utils/formatter';
-import { Activity, ArrowRight } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Activity } from 'lucide-react';
 
 interface RecentActivityProps {
     restaurants: any[];
@@ -19,73 +16,6 @@ export function RecentActivity({
     users,
     userRole,
 }: RecentActivityProps) {
-    const router = useRouter();
-
-    // return (
-    //     <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
-    //         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-2xl px-6 py-4">
-    //             <h3 className="text-lg font-semibold text-white">
-    //                 Recent Activity
-    //             </h3>
-    //         </div>
-    //         <div className="p-6">
-    //             <div className="space-y-6">
-    //                 <div className="flex items-center space-x-4">
-    //                     <div className="bg-green-100 rounded-full p-2">
-    //                         <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-    //                     </div>
-    //                     <div className="flex-1 min-w-0">
-    //                         <p className="text-sm font-medium text-gray-900">
-    //                             New restaurant &quot;Wilma Restaurant&quot;
-    //                             added
-    //                         </p>
-    //                         <p className="text-sm text-gray-500">
-    //                             Restaurant successfully onboarded with menu
-    //                             upload capability
-    //                         </p>
-    //                     </div>
-    //                     <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
-    //                         2 hours ago
-    //                     </span>
-    //                 </div>
-    //                 <div className="flex items-center space-x-4">
-    //                     <div className="bg-blue-100 rounded-full p-2">
-    //                         <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-    //                     </div>
-    //                     <div className="flex-1 min-w-0">
-    //                         <p className="text-sm font-medium text-gray-900">
-    //                             Menu uploaded for &quot;UGOT Bruncherie&quot;
-    //                         </p>
-    //                         <p className="text-sm text-gray-500">
-    //                             PDF menu processed and ready for customer access
-    //                         </p>
-    //                     </div>
-    //                     <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
-    //                         1 day ago
-    //                     </span>
-    //                 </div>
-    //                 <div className="flex items-center space-x-4">
-    //                     <div className="bg-orange-100 rounded-full p-2">
-    //                         <div className="h-2 w-2 bg-orange-500 rounded-full"></div>
-    //                     </div>
-    //                     <div className="flex-1 min-w-0">
-    //                         <p className="text-sm font-medium text-gray-900">
-    //                             QR code generated for &quot;Wilma
-    //                             Restaurant&quot;
-    //                         </p>
-    //                         <p className="text-sm text-gray-500">
-    //                             Customers can now scan QR to access digital menu
-    //                         </p>
-    //                     </div>
-    //                     <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
-    //                         2 days ago
-    //                     </span>
-    //                 </div>
-    //             </div>
-    //         </div>
-    //     </div>
-    // );
-
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -94,14 +24,14 @@ export function RecentActivity({
                     Recent Activity
                 </CardTitle>
 
-                <Button
+                {/* <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => router.push('/dashboard/activity')}
                 >
                     View All
                     <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
+                </Button> */}
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">

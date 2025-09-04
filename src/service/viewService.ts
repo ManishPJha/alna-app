@@ -71,6 +71,19 @@ export async function postRequest(path: string, data: any) {
     });
 }
 
+export async function postRequestWithFormData(
+    path: string,
+    data: any
+): Promise<any> {
+    return apiCall(path, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+        body: data,
+    });
+}
+
 export async function deleteRequest(path: string) {
     return apiCall(path, { method: 'DELETE' });
 }

@@ -6,6 +6,7 @@ import {
     UploadProvider,
     UploadResult,
 } from '@/types/upload';
+import { bufferToArrayBuffer } from '@/utils/formatter';
 import {
     generateAppwriteFileKey,
     UploadError as UploadException,
@@ -41,19 +42,32 @@ export class AppwriteProvider implements UploadProvider {
             validateFile(file, config);
 
             // Generate unique key (Appwrite uses file IDs)
-            const fileId =
-                file.key || generateAppwriteFileKey(file.originalName);
+            const fileId = generateAppwriteFileKey(file.originalName);
 
             // Upload with retry logic
             const uploadResult = await withRetry(
                 async () => {
                     const formData = new FormData();
                     formData.append('fileId', fileId);
+
+                    const arrayBuffer =
+                        file.buffer instanceof Buffer
+                            ? bufferToArrayBuffer(file.buffer)
+                            : file.buffer;
+
                     formData.append(
                         'file',
-                        new Blob([file.buffer], { type: file.mimeType }),
+                        new Blob([arrayBuffer as ArrayBuffer], {
+                            type: file.mimeType,
+                        }),
                         file.originalName
                     );
+
+                    // formData.append(
+                    //     'file',
+                    //     new Blob([file.buffer], { type: file.mimeType }),
+                    //     file.originalName
+                    // );
 
                     // // Add permissions (optional - makes file readable by all users)
                     // formData.append(

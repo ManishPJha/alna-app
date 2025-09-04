@@ -31,6 +31,7 @@ export class MenuDataTransformer {
                             id: item.id,
                             name: item.name || '',
                             description: item.description || '',
+                            imageUrl: item.imageUrl || '',
                             price:
                                 typeof item.price === 'string'
                                     ? parseFloat(item.price)
@@ -91,6 +92,7 @@ export class MenuDataTransformer {
                     isAvailable: item.isAvailable,
                     displayOrder: item.displayOrder,
                     categoryId: item.categoryId,
+                    imageUrl: item.imageUrl,
                 })),
             })),
             faqs: (formData.faqs || []).map((faq) => ({

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { queryKeys } from '@/lib/query-client';
 import { OrderFilters, OrderStatus, orderService } from '@/service/orders';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,7 +18,10 @@ export function useOrders(filters?: OrderFilters) {
 }
 
 // Get orders by restaurant
-export function useOrdersByRestaurant(restaurantId: string, filters?: Omit<OrderFilters, 'restaurantId'>) {
+export function useOrdersByRestaurant(
+    restaurantId: string,
+    filters?: Omit<OrderFilters, 'restaurantId'>
+) {
     return useQuery({
         queryKey: queryKeys.orders.byRestaurant(restaurantId, filters),
         queryFn: () => orderService.getByRestaurant(restaurantId, filters),
@@ -29,7 +31,8 @@ export function useOrdersByRestaurant(restaurantId: string, filters?: Omit<Order
         }),
         enabled: !!restaurantId,
         placeholderData: (previousData) => previousData,
-        refetchInterval: 10000, // Refresh every 10 seconds for real-time updates
+        refetchOnWindowFocus: false,
+        // refetchInterval: 10000, // Refresh every 10 seconds for real-time updates
     });
 }
 
@@ -45,7 +48,10 @@ export function useOrder(id: string) {
 }
 
 // Get order statistics
-export function useOrderStats(restaurantId: string, period?: 'today' | 'week' | 'month') {
+export function useOrderStats(
+    restaurantId: string,
+    period?: 'today' | 'week' | 'month'
+) {
     return useQuery({
         queryKey: queryKeys.orders.stats(restaurantId, period),
         queryFn: () => orderService.getStats(restaurantId, period),
@@ -60,8 +66,13 @@ export function useUpdateOrderStatus() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ orderId, status }: { orderId: string; status: OrderStatus }) =>
-            orderService.updateStatus(orderId, status),
+        mutationFn: ({
+            orderId,
+            status,
+        }: {
+            orderId: string;
+            status: OrderStatus;
+        }) => orderService.updateStatus(orderId, status),
         onMutate: async ({ orderId, status }) => {
             // Cancel outgoing refetches
             await queryClient.cancelQueries({
@@ -85,7 +96,11 @@ export function useUpdateOrderStatus() {
                             ...old.data,
                             orders: old.data.orders.map((order: any) =>
                                 order.id === orderId
-                                    ? { ...order, status, updatedAt: new Date().toISOString() }
+                                    ? {
+                                          ...order,
+                                          status,
+                                          updatedAt: new Date().toISOString(),
+                                      }
                                     : order
                             ),
                         },
@@ -124,8 +139,13 @@ export function useBulkUpdateOrderStatus() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ orderIds, status }: { orderIds: string[]; status: OrderStatus }) =>
-            orderService.bulkUpdateStatus(orderIds, status),
+        mutationFn: ({
+            orderIds,
+            status,
+        }: {
+            orderIds: string[];
+            status: OrderStatus;
+        }) => orderService.bulkUpdateStatus(orderIds, status),
         onMutate: async ({ orderIds, status }) => {
             await queryClient.cancelQueries({
                 queryKey: queryKeys.orders.lists(),
@@ -147,7 +167,11 @@ export function useBulkUpdateOrderStatus() {
                             ...old.data,
                             orders: old.data.orders.map((order: any) =>
                                 orderIds.includes(order.id)
-                                    ? { ...order, status, updatedAt: new Date().toISOString() }
+                                    ? {
+                                          ...order,
+                                          status,
+                                          updatedAt: new Date().toISOString(),
+                                      }
                                     : order
                             ),
                         },
@@ -163,7 +187,9 @@ export function useBulkUpdateOrderStatus() {
                     queryClient.setQueryData(queryKey, data);
                 });
             }
-            toast.error(`Failed to update ${orderIds.length} orders: ${err.message}`);
+            toast.error(
+                `Failed to update ${orderIds.length} orders: ${err.message}`
+            );
         },
         onSuccess: (data, { orderIds, status }) => {
             toast.success(`Updated ${orderIds.length} orders to ${status}`, {
@@ -263,7 +289,9 @@ export function useDeleteOrder() {
                         ...old,
                         data: {
                             ...old.data,
-                            orders: old.data.orders.filter((order: any) => order.id !== orderId),
+                            orders: old.data.orders.filter(
+                                (order: any) => order.id !== orderId
+                            ),
                         },
                     };
                 }
@@ -293,8 +321,20 @@ export function useDeleteOrder() {
 // Export orders mutation
 export function useExportOrders() {
     return useMutation({
-        mutationFn: async ({ restaurantId, format, filters }: { restaurantId: string; format: 'csv' | 'json'; filters?: OrderFilters }) => {
-            const blob = await orderService.export(restaurantId, format, filters);
+        mutationFn: async ({
+            restaurantId,
+            format,
+            filters,
+        }: {
+            restaurantId: string;
+            format: 'csv' | 'json';
+            filters?: OrderFilters;
+        }) => {
+            const blob = await orderService.export(
+                restaurantId,
+                format,
+                filters
+            );
             return { blob, format };
         },
         onSuccess: ({ blob, format }) => {
@@ -302,13 +342,17 @@ export function useExportOrders() {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `orders-${new Date().toISOString().split('T')[0]}.${format}`;
+            a.download = `orders-${
+                new Date().toISOString().split('T')[0]
+            }.${format}`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-            
-            toast.success(`Orders exported successfully as ${format.toUpperCase()}`);
+
+            toast.success(
+                `Orders exported successfully as ${format.toUpperCase()}`
+            );
         },
         onError: (err: Error) => {
             toast.error(`Failed to export orders: ${err.message}`);
@@ -317,8 +361,14 @@ export function useExportOrders() {
 }
 
 // Custom hook for real-time order updates
-export function useRealTimeOrders(restaurantId: string, filters?: Omit<OrderFilters, 'restaurantId'>) {
-    const { data, isLoading, error, refetch } = useOrdersByRestaurant(restaurantId, filters);
+export function useRealTimeOrders(
+    restaurantId: string,
+    filters?: Omit<OrderFilters, 'restaurantId'>
+) {
+    const { data, isLoading, error, refetch } = useOrdersByRestaurant(
+        restaurantId,
+        filters
+    );
 
     // Auto-refresh every 30 seconds
     const startAutoRefresh = useCallback(() => {
@@ -337,4 +387,4 @@ export function useRealTimeOrders(restaurantId: string, filters?: Omit<OrderFilt
         refetch,
         startAutoRefresh,
     };
-} 
+}

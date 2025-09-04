@@ -26,7 +26,7 @@ export const DashboardHeader = ({
                     <div className="flex items-center">
                         <div className="mr-4">
                             <AppImage
-                                src="/alna_logo.png"
+                                src="/web-app-manifest-192x192.png"
                                 alt="Logo"
                                 width={60}
                                 height={60}

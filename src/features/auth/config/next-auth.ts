@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { type UserRole } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -7,40 +6,20 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 
 import { authConfig } from '@/config/appConfig';
-import { signOut } from '@/features/auth';
 import { db } from '@/lib/db';
 
-/**
- * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
- * object and keep type safety.
- *
- * @see https://next-auth.js.org/getting-started/typescript#module-augmentation
- */
 declare module 'next-auth' {
     interface Session extends DefaultSession {
         user: {
             id: string;
-            // ...other properties
             role: UserRole;
             restaurantId: string;
         } & DefaultSession['user'];
     }
-
-    // interface User {
-    //   // ...other properties
-    //   // role: UserRole;
-    // }
-}
-
-async function logOutUser() {
-    'use server';
-    await signOut({ redirectTo: '/auth/signin' });
 }
 
 /**
  * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
- *
- * @see https://next-auth.js.org/configuration/options
  */
 export const nextAuthConfig = {
     providers: [
@@ -60,7 +39,7 @@ export const nextAuthConfig = {
                         where: { email: credentials.email as string },
                     });
 
-                    if (!user || !user.passwordHash) {
+                    if (!user || !user.passwordHash || !user.isActive) {
                         return null;
                     }
 
@@ -91,7 +70,6 @@ export const nextAuthConfig = {
             clientSecret: authConfig.googleClientSecret,
         }),
     ],
-    // adapter: PrismaAdapter(db),
     adapter: PrismaAdapter(db),
     session: {
         strategy: 'jwt',
@@ -112,7 +90,7 @@ export const nextAuthConfig = {
                 const dbUser = await db.user.findUnique({
                     where: { email: user.email },
                 });
-                return dbUser?.isActive ?? false;
+                return !!dbUser && dbUser.isActive;
             }
 
             return false;
@@ -140,16 +118,20 @@ export const nextAuthConfig = {
         },
         async session({ session, token }) {
             if (token) {
-                console.log('+++++++++++++token', token);
-                console.log(' ----- session', session);
-
-                // validate token
+                // Check if user still exists and is active
                 const dbUser = await db.user.findUnique({
                     where: { id: token.id as string },
+                    select: { id: true, role: true, isActive: true },
                 });
 
-                if (!dbUser) {
-                    await logOutUser();
+                // If user doesn't exist or is inactive, return empty session
+                // The middleware will handle the redirect
+                if (!dbUser || !dbUser.isActive) {
+                    return {
+                        ...session,
+                        user: undefined,
+                        expires: new Date().toISOString(),
+                    };
                 }
 
                 session.user.id = token.id as string;

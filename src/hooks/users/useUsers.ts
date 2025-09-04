@@ -1,7 +1,12 @@
 import { queryKeys } from '@/lib/query-client';
 import { UserFilters, userService } from '@/service/users';
 import { User } from '@/types/api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    useMutation,
+    useQuery,
+    useQueryClient,
+    useSuspenseQuery,
+} from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 // Get all users with filtering
@@ -19,6 +24,22 @@ export function useUsers(filters?: UserFilters) {
             pagination: data.data?.pagination,
         }),
         placeholderData: (previousData) => previousData,
+    });
+}
+
+export function useUsersSuspense(filters?: UserFilters) {
+    return useSuspenseQuery({
+        queryKey: queryKeys.users.list(filters),
+        queryFn: () =>
+            userService.getAll({
+                ...filters,
+                sortBy: filters?.sortBy || 'createdAt',
+                sortOrder: filters?.sortOrder || 'desc',
+            }),
+        select: (data) => ({
+            users: data.data?.users || [],
+            pagination: data.data?.pagination,
+        }),
     });
 }
 

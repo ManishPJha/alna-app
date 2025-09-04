@@ -26,6 +26,7 @@ async function getDashboardData(userId: string, userRole: string) {
         restaurantsCount,
         usersCount,
         qrCodesCount,
+        ordersCount,
         recentRestaurants,
         recentUsers,
         monthlyStats,
@@ -43,6 +44,21 @@ async function getDashboardData(userId: string, userRole: string) {
         // Total QR codes count
         db.qRCode.count({
             where: userRole === 'ADMIN' ? {} : { restaurant: whereClause },
+        }),
+
+        // Total orders count
+        db.order.count({
+            where:
+                userRole === 'ADMIN'
+                    ? {}
+                    : {
+                          //   restaurant: whereClause,
+                          //   status: { in: ['PENDING', 'COMPLETED'] },
+                          AND: [
+                              { restaurant: whereClause },
+                              { status: { in: ['RECEIVED', 'SERVED'] } },
+                          ],
+                      },
         }),
 
         // Recent restaurants
@@ -85,6 +101,7 @@ async function getDashboardData(userId: string, userRole: string) {
             users: usersCount,
             qrCodes: qrCodesCount,
             activeMenus: await getActiveMenusCount(whereClause),
+            orders: ordersCount,
         },
         recentRestaurants,
         recentUsers,
@@ -102,7 +119,6 @@ async function getUserRestaurantIds(userId: string) {
     return user?.restaurant ? [user.restaurant.id] : [];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getActiveMenusCount(whereClause: any) {
     return db.restaurant.count({
         where: {

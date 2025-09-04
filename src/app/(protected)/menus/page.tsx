@@ -1,25 +1,11 @@
 import { RoleGuard } from '@/components/auth/RoleGuard';
-import { auth } from '@/features/auth/handlers';
 import { MenusPage } from '@/features/menu';
-import { queryKeys } from '@/lib/query-client';
-import { MenuFilters } from '@/service/menuService';
+import { queryClient, queryKeys } from '@/lib/query-client';
+import { MenuFilters, menuService } from '@/service/menuService';
 import { restaurantService } from '@/service/restaurants';
-import { userService } from '@/service/users';
-import {
-    HydrationBoundary,
-    QueryClient,
-    dehydrate,
-} from '@tanstack/react-query';
+import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 
 export default async function MenusView() {
-    const session = await auth();
-
-    if (!session?.user) {
-        return <div>Unauthorized</div>;
-    }
-
-    const queryClient = new QueryClient();
-
     const defaultFilters: MenuFilters = {
         page: 1,
         limit: 10,
@@ -28,21 +14,25 @@ export default async function MenusView() {
         sortOrder: 'desc' as 'asc' | 'desc',
     };
 
-    await queryClient.prefetchQuery({
-        queryKey: queryKeys.users.list(defaultFilters),
-        queryFn: () => userService.getAll(defaultFilters),
-    });
+    try {
+        await queryClient.prefetchQuery({
+            queryKey: queryKeys.menus.list(defaultFilters),
+            queryFn: () => menuService.getAll(defaultFilters),
+        });
 
-    await queryClient.prefetchQuery({
-        queryKey: queryKeys.restaurants.list(),
-        queryFn: () => restaurantService.getAll(),
-    });
+        await queryClient.prefetchQuery({
+            queryKey: queryKeys.restaurants.list(),
+            queryFn: () => restaurantService.getAll(),
+        });
+    } catch (error) {
+        console.error('Error prefetching data:', error);
+    }
 
     return (
-        <HydrationBoundary state={dehydrate(queryClient)}>
-            <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
-                <MenusPage currentUser={session?.user} />
-            </RoleGuard>
-        </HydrationBoundary>
+        <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
+            <HydrationBoundary state={dehydrate(queryClient)}>
+                <MenusPage />
+            </HydrationBoundary>
+        </RoleGuard>
     );
 }

@@ -101,12 +101,12 @@ export interface Menu {
     description?: string;
     restaurantId: string;
     isActive: boolean;
+    isPublished: boolean;
     theme: MenuTheme;
     categories: MenuCategory[];
     faqs?: FAQ[]; // Optional FAQs for existing menus
     createdAt?: string;
     updatedAt?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     restaurant?: any; // Optional populated field
 }
 
@@ -130,6 +130,7 @@ export interface MenuFormData {
     id?: string;
     name: string;
     description?: string;
+    restaurantName?: string;
     restaurantId: string;
     isActive: boolean;
     categories: MenuCategory[];
@@ -166,6 +167,7 @@ export function getDefaultMenuFormData(): MenuFormData {
         name: '',
         description: '',
         restaurantId: '',
+        restaurantName: '',
         isActive: true,
         categories: [],
         faqs: [],

@@ -31,15 +31,15 @@ export function generateAppwriteFileKey(originalName?: string): string {
     const uuid = randomUUID().replace(/-/g, '');
 
     // If we have an original name, try to preserve the extension
-    if (originalName) {
-        const ext = path
-            .extname(originalName)
-            .toLowerCase()
-            .replace(/[^a-zA-Z0-9]/g, '');
-        if (ext && uuid.length + ext.length + 1 <= 36) {
-            return `${uuid.substring(0, 36 - ext.length - 1)}.${ext}`;
-        }
-    }
+    // if (originalName) {
+    //     const ext = path
+    //         .extname(originalName)
+    //         .toLowerCase()
+    //         .replace(/[^a-zA-Z0-9]/g, '');
+    //     if (ext && uuid.length + ext.length + 1 <= 36) {
+    //         return `${uuid.substring(0, 36 - ext.length - 1)}.${ext}`;
+    //     }
+    // }
 
     // Fallback to just UUID (32 chars, always valid)
     return uuid.substring(0, 32);

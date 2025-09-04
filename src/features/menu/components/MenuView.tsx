@@ -71,6 +71,7 @@ export function MenuView({ menuId }: MenuViewProps) {
                 name: data.name,
                 description: data.description,
                 restaurantId: data.restaurant?.id || 'unknown',
+                restaurantName: data.restaurant?.name || data.name || 'Food Menu',
                 isActive: true,
                 categories: data.categories || [],
                 faqs: data.faqs || [],

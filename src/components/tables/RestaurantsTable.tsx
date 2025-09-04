@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from '@/shared/components/ui/button';
 import { Restaurant } from '@/types/api';
+import { formatDate } from '@/utils/formatter';
 import {
     ColumnDef,
     flexRender,
@@ -114,16 +114,16 @@ export function RestaurantsTable({
                     </div>
                 ),
             },
-            {
-                accessorKey: 'manager',
-                header: 'Manager',
-                cell: () => (
-                    <div className="text-sm font-medium text-gray-900">
-                        Restaurant Manager
-                    </div>
-                ),
-                enableSorting: false,
-            },
+            // {
+            //     accessorKey: 'manager',
+            //     header: 'Manager',
+            //     cell: () => (
+            //         <div className="text-sm font-medium text-gray-900">
+            //             Restaurant Manager
+            //         </div>
+            //     ),
+            //     enableSorting: false,
+            // },
             {
                 accessorKey: 'status',
                 header: 'Status',
@@ -151,6 +151,16 @@ export function RestaurantsTable({
                         >
                             <Upload className="h-4 w-4" />
                         </button>
+                    </div>
+                ),
+                enableSorting: false,
+            },
+            {
+                accessorKey: 'createdAt',
+                header: 'Created At',
+                cell: ({ row }) => (
+                    <div className="text-sm text-gray-500">
+                        {formatDate(row.original.createdAt)}
                     </div>
                 ),
                 enableSorting: false,

@@ -117,18 +117,46 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const restaurantId = searchParams.get('restaurantId') || '';
-    const status = searchParams.get('status') || undefined;
+    const statusRaw = searchParams.get('status');
+    const allowedStatuses = new Set(['DRAFT','RECEIVED','PREPARING','READY','SERVED','CANCELLED']);
+    const status = statusRaw && allowedStatuses.has(statusRaw) ? (statusRaw as OrderStatus) : undefined;
+    const sortByRaw = searchParams.get('sortBy') || 'createdAt';
+    const sortOrderRaw = searchParams.get('sortOrder') || 'desc';
+    const startDateRaw = searchParams.get('startDate');
+    const endDateRaw = searchParams.get('endDate');
 
     if (!restaurantId) {
       return NextResponse.json({ error: 'restaurantId is required' }, { status: 400 });
     }
 
-    const where: { restaurantId: string; status?: OrderStatus } = { restaurantId };
+    // Build where clause
+    const where: {
+      restaurantId: string;
+      status?: OrderStatus;
+      createdAt?: { gte?: Date; lte?: Date };
+    } = { restaurantId };
     if (status) where.status = status as OrderStatus;
+
+    // Date range filter
+    const dateRange: { gte?: Date; lte?: Date } = {};
+    if (startDateRaw && startDateRaw !== 'undefined' && startDateRaw !== 'null') {
+      const d = new Date(startDateRaw);
+      if (!isNaN(d.getTime())) dateRange.gte = d;
+    }
+    if (endDateRaw && endDateRaw !== 'undefined' && endDateRaw !== 'null') {
+      const d = new Date(endDateRaw);
+      if (!isNaN(d.getTime())) dateRange.lte = d;
+    }
+    if (dateRange.gte || dateRange.lte) where.createdAt = dateRange;
+
+    // Sorting
+    const validSortBy = new Set(['createdAt', 'totalAmount', 'status']);
+    const sortBy = validSortBy.has(sortByRaw) ? (sortByRaw as 'createdAt' | 'totalAmount' | 'status') : 'createdAt';
+    const sortOrder = sortOrderRaw === 'asc' ? 'asc' : 'desc';
 
     const orders = await db.order.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { [sortBy]: sortOrder },
       include: {
         qrCode: true,
         orderItems: {

@@ -1,0 +1,52 @@
+{
+  "filter_input_placeholder": "Търсене на храна",
+  "filters": {
+    "all": "Всички",
+    "vegetarian": "Вегетарианско",
+    "vegan": "Веган",
+    "gluten-free": "Без глутен",
+    "spicy": "Люто"
+  },
+  "cart": {
+    "view_cart_btn": "Преглед на количката",
+    "cart_modal_title": "Вашата поръчка",
+    "cart_modal_dropdown": "Изберете маса",
+    "cart_modal_identify_table": "Масата е идентифицирана чрез QR код.",
+    "cart_modal_table_loading_text": "Зареждане на маси...",
+    "cart_modal_dropdown_title": "Номер на маса",
+    "cart_modal_dropdown_description": "Изберете маса, за да направите поръчка",
+    "cart_modal_order_additional_notes": "Специални изисквания (по избор)",
+    "cart_modal_order_additional_notes_placeholder": "Бележки към кухнята...",
+    "empty_cart": "Количката ви е празна",
+    "empty_cart_description": "Добавете няколко артикула!",
+    "cart_modal_order_btn": "Направи поръчка",
+    "cart_modal_order_btn_loading": "Извършва се поръчка...",
+    "cart_modal_order_price_total": "Общо",
+    "cart_modal_order_item_price_desc": "${{price}} за брой",
+    "order_success": "Поръчката е направена успешно"
+  },
+  "empty_state": {
+    "no_items_found": "Няма намерени артикули",
+    "try_adjusting_filters": "Опитайте да коригирате търсенето или филтрите"
+  },
+  "loading": {
+    "translating_menu": "Превеждане на менюто",
+    "please_wait": "Моля, изчакайте..."
+  },
+  "ai": {
+    "ai_chat_btn": "Попитай AI",
+    "ai_chat_title": "Попитай AI",
+    "ai_chat_online_status_text": "Онлайн",
+    "ai_chat_offline_status_text": "Офлайн",
+    "ai_chat_placeholder": "Питай ме всичко за менюто",
+    "ai_chat_loading_text": "Мисля...",
+    "ai_chat_welcome_message": "Здравей! Аз съм твоят AI асистент за менюто. Мога да помогна да откриеш ястия, да обясня съставки, да предложа комбинации или да отговоря на въпроси за нашето меню!",
+    "ai_chat_error_message": "Съжалявам, възникна проблем при обработката на заявката. Моля, опитайте отново след малко."
+  },
+  "dietary_tags": {
+    "vegetarian": "Вегетарианско",
+    "vegan": "Веган",
+    "gluten_free": "Без глутен",
+    "spicy": "Люто"
+  }
+}

@@ -1,13 +1,30 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// hooks/menus/useMenus.ts
 import { menuService, type MenuFilters } from '@/service/menuService';
 import { Menu } from '@/types/api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    useMutation,
+    useQuery,
+    useQueryClient,
+    useSuspenseQuery,
+} from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 // Get all menus with pagination and filtering
 export const useMenus = (filters?: MenuFilters) => {
     return useQuery({
+        queryKey: ['menus', filters],
+        queryFn: () =>
+            menuService.getAll({
+                ...filters,
+                sortBy: filters?.sortBy || 'createdAt',
+                sortOrder: filters?.sortOrder || 'desc',
+            }),
+        select: (data) => data.data,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+};
+
+export const useSuspenseMenus = (filters?: MenuFilters) => {
+    return useSuspenseQuery({
         queryKey: ['menus', filters],
         queryFn: () =>
             menuService.getAll({
@@ -93,6 +110,28 @@ export const useDuplicateMenu = () => {
         },
         onError: (error: any) => {
             toast.error(error?.message || 'Failed to duplicate menu');
+        },
+    });
+};
+
+// Publish menu
+export const usePublishMenu = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({
+            id,
+            isPublished,
+        }: {
+            id: string;
+            isPublished: boolean;
+        }) => menuService.publish(id, isPublished),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['menus'] });
+            toast.success('Menu published successfully');
+        },
+        onError: (error: any) => {
+            toast.error(error?.message || 'Failed to publish menu');
         },
     });
 };

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { RoleGuard } from '@/components/auth/RoleGuard';
@@ -24,11 +23,9 @@ import {
 import { Restaurant } from '@/types/api';
 import { PaginationState, SortingState } from '@tanstack/react-table';
 import { Plus, Search, Store } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function RestaurantsPage() {
-    const router = useRouter();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editingRestaurant, setEditingRestaurant] =
         useState<Restaurant | null>(null);
@@ -76,6 +73,7 @@ export default function RestaurantsPage() {
             setIsCreateOpen(false);
         } catch (error) {
             // Error handled by mutation
+            console.error('Error creating restaurant:', error);
         }
     };
 
@@ -89,6 +87,7 @@ export default function RestaurantsPage() {
             setEditingRestaurant(null);
         } catch (error) {
             // Error handled by mutation
+            console.error('Error updating restaurant:', error);
         }
     };
 
@@ -99,6 +98,7 @@ export default function RestaurantsPage() {
             setDeletingId(null);
         } catch (error) {
             // Error handled by mutation
+            console.error('Error deleting restaurant:', error);
         }
     };
 
@@ -112,6 +112,7 @@ export default function RestaurantsPage() {
             setUploadingRestaurant(null);
         } catch (error) {
             // Error handled by mutation
+            console.error('Error uploading menu:', error);
         }
     };
 
@@ -143,7 +144,7 @@ export default function RestaurantsPage() {
     return (
         <RoleGuard allowedRoles={['ADMIN', 'MANAGER']}>
             <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-                <div className="space-y-8 p-8">
+                <div className="space-y-8">
                     {/* Welcome Header with AdminDashboard Theme */}
                     <div className="relative">
                         <div className="absolute inset-0 bg-indigo-600 rounded-2xl"></div>
@@ -213,13 +214,11 @@ export default function RestaurantsPage() {
                                 Create New Restaurant
                             </DialogTitle>
                         </DialogHeader>
-                        <div className="p-6 bg-white">
-                            <RestaurantForm
-                                onSubmit={handleCreate}
-                                onCancel={() => setIsCreateOpen(false)}
-                                loading={createMutation.isPending}
-                            />
-                        </div>
+                        <RestaurantForm
+                            onSubmit={handleCreate}
+                            onCancel={() => setIsCreateOpen(false)}
+                            loading={createMutation.isPending}
+                        />
                     </DialogContent>
                 </Dialog>
 
@@ -234,14 +233,12 @@ export default function RestaurantsPage() {
                                 Edit Restaurant
                             </DialogTitle>
                         </DialogHeader>
-                        <div className="p-6 bg-white">
-                            <RestaurantForm
-                                restaurant={editingRestaurant || undefined}
-                                onSubmit={handleUpdate}
-                                onCancel={() => setEditingRestaurant(null)}
-                                loading={updateMutation.isPending}
-                            />
-                        </div>
+                        <RestaurantForm
+                            restaurant={editingRestaurant || undefined}
+                            onSubmit={handleUpdate}
+                            onCancel={() => setEditingRestaurant(null)}
+                            loading={updateMutation.isPending}
+                        />
                     </DialogContent>
                 </Dialog>
 

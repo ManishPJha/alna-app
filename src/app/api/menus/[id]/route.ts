@@ -65,6 +65,7 @@ export async function GET(
                     id: item.id,
                     name: item.name,
                     description: item.description,
+                    imageUrl: item.imageUrl,
                     price: parseFloat(item.price.toString()),
                     isVegetarian: item.isVegetarian,
                     isVegan: item.isVegan,
@@ -279,7 +280,7 @@ export async function PUT(
 
                             await prisma.$executeRaw`
                                 INSERT INTO "public"."menu_items" 
-                                (id, "restaurantId", "categoryId", name, description, price, 
+                                (id, "restaurantId", "categoryId", name, description, price, "imageUrl", 
                                  "isVegetarian", "isVegan", "isGlutenFree", "isSpicy", "isAvailable", 
                                  "displayOrder", "createdAt", "updatedAt", "isVisible")
                                 VALUES (${itemId}, ${
@@ -288,6 +289,7 @@ export async function PUT(
                                        ${item.description || ''}, ${
                                 item.price || 0
                             }, 
+                                ${item.imageUrl || ''},
                                        ${item.isVegetarian || false}, ${
                                 item.isVegan || false
                             }, 
@@ -306,6 +308,7 @@ export async function PUT(
                                 description: item.description || '',
                                 price: item.price || 0,
                                 categoryId: categoryId,
+                                imageUrl: item.imageUrl || '',
                             });
                         }
                     }
@@ -357,6 +360,40 @@ export async function PUT(
         });
     } catch (error) {
         log.error('Menu update error', error);
+        return NextResponse.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        );
+    }
+}
+
+export async function PATCH(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { error, user } = await requireAuth();
+        if (error || !user) return error;
+
+        const { id } = await params;
+        log.info('Updating menu', { id });
+
+        const body = await request.json();
+        const { name, description, isActive, isPublished } = body ?? {};
+
+        const updated = await db.menu.update({
+            where: { id },
+            data: {
+                ...(typeof name === 'string' ? { name } : {}),
+                ...(typeof description === 'string' ? { description } : {}),
+                ...(typeof isActive === 'boolean' ? { isActive } : {}),
+                ...(typeof isPublished === 'boolean' ? { isPublished } : {}),
+            },
+        });
+
+        return NextResponse.json({ success: true, menu: updated });
+    } catch (error) {
+        console.error('Manager Menu PATCH error', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

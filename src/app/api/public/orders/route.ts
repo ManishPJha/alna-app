@@ -74,7 +74,6 @@ export async function POST(req: NextRequest) {
 
         // Determine which menu to use
         const targetMenu = restaurant.menus[0];
-        console.log('🚀 ~ POST ~ targetMenu:', targetMenu);
         if (!targetMenu) {
             return NextResponse.json(
                 { error: 'No published menu available for this restaurant' },
@@ -158,7 +157,6 @@ export async function POST(req: NextRequest) {
             (i: { menuItemId: string }) => i.menuItemId
         );
 
-        console.log('🚀 ~ POST ~ menuItemIds:', menuItemIds);
         // UPDATED: Validate menu items belong to the target menu through categories
         const menuItems = await db.menuItem.findMany({
             where: {
@@ -186,7 +184,6 @@ export async function POST(req: NextRequest) {
         });
 
         const menuById = new Map(menuItems.map((m) => [m.id, m]));
-        console.log('🚀 ~ POST ~ menuItems:', menuItems);
 
         // Validate all requested items exist
         for (const item of items) {

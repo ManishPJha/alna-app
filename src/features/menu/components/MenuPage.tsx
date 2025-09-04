@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { MenusTable } from '@/components/tables/MenuTable';
@@ -8,20 +7,17 @@ import { Input } from '@/components/ui/input';
 import {
     useDeleteMenu,
     useDuplicateMenu,
-    useMenus,
+    usePublishMenu,
+    useSuspenseMenus,
 } from '@/hooks/menus/useMenus';
-import { useRestaurants } from '@/hooks/restaurants/useRestaurants';
+import { useRestaurantsSuspense } from '@/hooks/restaurants/useRestaurants';
 import { Menu } from '@/types/api';
 import { PaginationState, SortingState } from '@tanstack/react-table';
 import { ChefHat, Plus, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-interface MenusPageProps {
-    currentUser?: any;
-}
-
-export default function MenusPage({ currentUser }: MenusPageProps) {
+export default function MenusPage() {
     const router = useRouter();
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -37,7 +33,7 @@ export default function MenusPage({ currentUser }: MenusPageProps) {
     const [duplicateId, setDuplicateId] = useState<string | null>(null);
 
     // Queries and mutations with server-side params
-    const { data: menusData, isLoading } = useMenus({
+    const { data: menusData, isLoading } = useSuspenseMenus({
         page: pagination.pageIndex + 1,
         limit: pagination.pageSize,
         search: searchQuery,
@@ -46,10 +42,11 @@ export default function MenusPage({ currentUser }: MenusPageProps) {
     });
 
     // Get restaurants for the menu creation
-    const { data: restaurantsData } = useRestaurants();
+    const { data: restaurantsData } = useRestaurantsSuspense();
 
     const deleteMutation = useDeleteMenu();
     const duplicateMenuMutation = useDuplicateMenu();
+    const publishMenuMutation = usePublishMenu();
 
     const menus = menusData?.menus || [];
     const restaurants = restaurantsData?.restaurants || [];
@@ -92,7 +89,7 @@ export default function MenusPage({ currentUser }: MenusPageProps) {
                 setDuplicateId(null);
             }
         } catch (error) {
-            // Error handled by mutation
+            console.error('Duplicate error:', error);
         }
     };
 
@@ -102,7 +99,18 @@ export default function MenusPage({ currentUser }: MenusPageProps) {
             await deleteMutation.mutateAsync(deletingId);
             setDeletingId(null);
         } catch (error) {
-            // Error handled by mutation
+            console.error('Delete error:', error);
+        }
+    };
+
+    const handlePublish = async (menuId: string, isPublished: boolean) => {
+        try {
+            await publishMenuMutation.mutateAsync({
+                id: menuId,
+                isPublished,
+            });
+        } catch (error) {
+            console.error('Publish error:', error);
         }
     };
 
@@ -175,9 +183,9 @@ export default function MenusPage({ currentUser }: MenusPageProps) {
                 onView={handleViewMenu}
                 onDuplicate={handleDuplicateMenu}
                 onDelete={setDeletingId}
+                onPublish={handlePublish}
                 onPaginationChange={handlePaginationChange}
                 onSortingChange={handleSortingChange}
-                currentUser={currentUser}
             />
 
             {/* Delete Confirmation */}

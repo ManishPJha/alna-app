@@ -104,14 +104,14 @@ export function QRCodeForm({
                 </div>
             </div>
 
-            {!selectedMenuId && (
+            {/* {!selectedMenuId && (
                 <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-sm text-amber-800">
                         Please select a menu to create QR codes. QR codes will
                         link directly to the selected menu.
                     </p>
                 </div>
-            )}
+            )} */}
         </div>
     );
 }

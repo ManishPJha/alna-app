@@ -18,6 +18,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { timezones } from '@/lib/constants';
 import { Restaurant } from '@/types/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -58,18 +59,6 @@ const languages = [
     { value: 'it', label: 'Italian' },
 ];
 
-// Data for timezone selection dropdown.
-const timezones = [
-    { value: 'UTC', label: 'UTC' },
-    { value: 'America/New_York', label: 'Eastern Time' },
-    { value: 'America/Chicago', label: 'Central Time' },
-    { value: 'America/Denver', label: 'Mountain Time' },
-    { value: 'America/Los_Angeles', label: 'Pacific Time' },
-    { value: 'Europe/London', label: 'London' },
-    { value: 'Europe/Paris', label: 'Paris' },
-    { value: 'Asia/Tokyo', label: 'Tokyo' },
-];
-
 export function RestaurantForm({
     restaurant,
     onSubmit,
@@ -95,7 +84,7 @@ export function RestaurantForm({
     });
 
     return (
-        <div className="bg-white text-gray-900 p-6 rounded-lg">
+        <div className="bg-white text-gray-900 p-3 rounded-lg">
             <FormProvider {...form}>
                 <Form
                     onSubmit={form.handleSubmit(onSubmit)}

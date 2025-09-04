@@ -22,7 +22,8 @@
         "cart_modal_order_btn": "注文する",
         "cart_modal_order_btn_loading": "注文中...",
         "cart_modal_order_price_total": "合計",
-        "cart_modal_order_item_price_desc": "1つあたり${{price}}"
+        "cart_modal_order_item_price_desc": "1つあたり${{price}}",
+        "order_success": "ご注文が完了しました"
     },
     "empty_state": {
         "no_items_found": "アイテムが見つかりません",
@@ -40,9 +41,12 @@
         "ai_chat_placeholder": "メニューについて何でも聞いてください",
         "ai_chat_loading_text": "考え中...",
         "ai_chat_welcome_message": "こんにちは！私はあなたのAIメニューアシスタントです。料理を見つけたり、材料を説明したり、組み合わせを提案したり、メニューについての質問に答えたりできます！",
-        "ai_chat_error_message": "申し訳ございませんが、現在リクエストの処理に問題があります。しばらくしてからもう一度お試しください。",
-        "dietary_vegan": "VG = ビーガン",
-        "dietary_vegetarian": "V = ベジタリアン",
-        "dietary_gluten_free": "GF = グルテンフリー"
+        "ai_chat_error_message": "申し訳ございませんが、現在リクエストの処理に問題があります。しばらくしてからもう一度お試しください。"
+    },
+    "dietary_tags": {
+        "vegetarian": "ベジタリアン",
+        "vegan": "ヴィーガン",
+        "gluten_free": "グルテンフリー",
+        "spicy": "辛い"
     }
 }

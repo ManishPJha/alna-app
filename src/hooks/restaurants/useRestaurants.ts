@@ -1,8 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { queryKeys } from '@/lib/query-client';
 import { RestaurantFilters, restaurantService } from '@/service/restaurants';
 import { Restaurant } from '@/types/api';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    useMutation,
+    useQuery,
+    useQueryClient,
+    useSuspenseQuery,
+} from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
 
@@ -21,6 +25,22 @@ export function useRestaurants(filters?: RestaurantFilters) {
             pagination: data.data?.pagination,
         }),
         placeholderData: (previousData) => previousData,
+    });
+}
+
+export function useRestaurantsSuspense(filters?: RestaurantFilters) {
+    return useSuspenseQuery({
+        queryKey: queryKeys.restaurants.list(filters),
+        queryFn: () =>
+            restaurantService.getAll({
+                ...filters,
+                sortBy: filters?.sortBy || 'createdAt',
+                sortOrder: filters?.sortOrder || 'desc',
+            }),
+        select: (data) => ({
+            restaurants: data.data?.restaurants || [],
+            pagination: data.data?.pagination,
+        }),
     });
 }
 
@@ -100,7 +120,7 @@ export function useCreateRestaurant() {
             );
             toast.error(`Failed to create restaurant: ${err.message}`);
         },
-        onSuccess: (data) => {
+        onSuccess: () => {
             toast.success('Restaurant created successfully');
         },
         onSettled: () => {

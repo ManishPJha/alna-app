@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
 
         // Get upload service and upload file
         const uploadService = getUploadService();
-        console.log('🚀 ~ POST ~ uploadService:', uploadService.getConfig());
         const result = await uploadService.upload(uploadFile);
 
         return NextResponse.json({

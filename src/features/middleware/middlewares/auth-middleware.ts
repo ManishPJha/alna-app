@@ -5,16 +5,12 @@ import {
     isPublicRoute,
     isUniversalRoute,
 } from '@/features/auth';
+import { validateSession } from '@/utils/validate-session';
 import { NextResponse } from 'next/server';
 import type { Middleware } from '../types';
 
 /**
- * Authentication middleware that enforces route access rules.
- *
- * Route Types:
- * - Universal: Accessible by everyone (authenticated + unauthenticated)
- * - Protected: Requires authentication
- * - Public: Only for unauthenticated users (sign-in, sign-up, etc.)
+ * Authentication middleware that enforces route access rules with session validation
  */
 export const authMiddleware: Middleware = async (request, next) => {
     const path = request.nextUrl.pathname;
@@ -27,27 +23,46 @@ export const authMiddleware: Middleware = async (request, next) => {
     // Check authentication status
     const sessionCookie = request.cookies.get(authConfig.sessionCookieName);
     const hasSession = !!sessionCookie?.value;
+    let isValidSession = false;
 
-    // Log for debugging (remove in production)
-    console.log(`[AuthMiddleware] Path: ${path}, HasSession: ${hasSession}`);
+    // Validate session against database for protected routes
+    if (hasSession) {
+        try {
+            isValidSession = await validateSession(sessionCookie.value);
+            console.log('Session validation result:', isValidSession);
 
-    // Handle protected routes - require authentication
+            // Clear invalid session cookie
+            if (!isValidSession) {
+                const response = NextResponse.next();
+                response.cookies.delete(authConfig.sessionCookieName);
+                return response;
+            }
+        } catch (error) {
+            console.error('Session validation failed:', error);
+            // If validation fails, treat as invalid session
+            const response = NextResponse.next();
+            response.cookies.delete(authConfig.sessionCookieName);
+            return response;
+        }
+    }
+
+    // Handle protected routes - require valid authentication
     if (isProtectedRoute(path)) {
-        if (!hasSession) {
+        if (!isValidSession) {
             console.log(
-                `[AuthMiddleware] Redirecting unauthenticated user from ${path} to landing page`
+                `[AuthMiddleware] Redirecting invalid session from ${path} to landing page`
             );
             return NextResponse.redirect(
                 new URL(paths.landingPage, request.url)
             );
         }
-        // User is authenticated and accessing protected route - allow access
+        // User has valid session and accessing protected route - allow access
         return await next();
     }
 
     // Handle public routes - only for unauthenticated users
     if (isPublicRoute(path)) {
-        if (hasSession) {
+        if (isValidSession) {
             console.log(
                 `[AuthMiddleware] Redirecting authenticated user from ${path} to dashboard`
             );
@@ -58,8 +73,7 @@ export const authMiddleware: Middleware = async (request, next) => {
     }
 
     // For routes that don't match any category, determine behavior based on auth status
-    // This handles edge cases and undefined routes
-    if (hasSession) {
+    if (isValidSession) {
         // Authenticated users can access undefined routes (might be dynamic routes)
         return await next();
     } else {

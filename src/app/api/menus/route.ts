@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         const search = searchParams.get('search') || '';
         const sortBy = searchParams.get('sortBy') || 'createdAt';
         const sortOrder = searchParams.get('sortOrder') || 'desc';
+        const restaurantId = searchParams.get('restaurantId');
 
         const finalSortBy = ['name', 'createdAt', 'updatedAt'].includes(sortBy)
             ? sortBy
@@ -36,6 +37,8 @@ export async function GET(request: NextRequest) {
         // Manager role filter - only see menus for their restaurant
         if (user.role === 'MANAGER') {
             whereClause.restaurantId = user.restaurantId!;
+        } else if (restaurantId) {
+            whereClause.restaurantId = restaurantId;
         }
 
         // Search filter
@@ -104,6 +107,7 @@ export async function GET(request: NextRequest) {
                     id: item.id,
                     name: item.name,
                     description: item.description,
+                    imageUrl: item.imageUrl,
                     price: parseFloat(item.price.toString()),
                     isVegetarian: item.isVegetarian,
                     isVegan: item.isVegan,
@@ -257,6 +261,7 @@ export async function POST(request: NextRequest) {
                             data: {
                                 name: item.name,
                                 description: item.description || '',
+                                imageUrl: item.imageUrl || '',
                                 price: new Prisma.Decimal(item.price || 0),
                                 isVegetarian: item.isVegetarian || false,
                                 isVegan: item.isVegan || false,
@@ -321,6 +326,7 @@ export async function POST(request: NextRequest) {
                         id: item.id,
                         name: item.name,
                         description: item.description,
+                        imageUrl: item.imageUrl,
                         price: parseFloat(item.price.toString()),
                         isVegetarian: item.isVegetarian,
                         isVegan: item.isVegan,

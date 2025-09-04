@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import AppImage from '@/shared/components/ui/image';
 import { MenuFormData, MenuItem } from '@/types/menu';
 import { ChefHat, Flame, Leaf, Wheat } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
@@ -45,7 +45,7 @@ const DietaryTags = ({ item }: { item: MenuItem }) => {
     if (tags.length === 0) return null;
 
     return (
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="flex flex-wrap gap-2 mt-1">
             {tags.map((tag, index) => (
                 <span
                     key={index}
@@ -65,127 +65,171 @@ export function MenuPreview({ form }: MenuPreviewProps) {
 
     return (
         <div
-            className="h-full overflow-auto rounded-2xl border border-gray-200 p-8"
+            className="h-full overflow-auto"
             style={{
                 backgroundColor: theme.backgroundColor,
                 fontFamily: theme.fontFamily,
             }}
         >
-            <div className="max-w-2xl mx-auto">
-                {/* Header */}
-                <div className="text-center mb-8">
-                    <h1
-                        className="text-4xl font-bold mb-3"
-                        style={{ color: theme.primaryColor }}
-                    >
-                        {menuData.name || 'Menu Name'}
-                    </h1>
-                    {menuData.description && (
-                        <p className="text-lg text-gray-600 leading-relaxed">
-                            {menuData.description}
-                        </p>
+            <div className="p-6 md:p-8">
+                <div className="max-w-6xl mx-auto">
+                    {/* Menu Header */}
+                    <div className="text-center mb-8">
+                        <h1
+                            className="text-5xl md:text-6xl font-serif mb-2 text-balance"
+                            style={{ color: theme.primaryColor }}
+                        >
+                            {menuData.name || 'Menu Name'}
+                        </h1>
+                        {menuData.description && (
+                            <p
+                                className="text-lg font-medium tracking-wider"
+                                style={{ color: theme.primaryColor }}
+                            >
+                                {menuData.description}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Categories - 2 Column Layout */}
+                    {menuData.categories && menuData.categories.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-2 ">
+                            {menuData.categories
+                                .filter((cat) => cat.isActive !== false)
+                                .map((category) => {
+                                    const items = (category.items || [])
+                                        .filter(
+                                            (item) => item.isAvailable !== false
+                                        )
+                                        .sort(
+                                            (a, b) =>
+                                                (a.displayOrder || 0) -
+                                                (b.displayOrder || 0)
+                                        );
+                                    if (items.length === 0) return null;
+                                    return (
+                                        <div
+                                            key={category.id}
+                                            className="space-y-6 md:space-y-8"
+                                        >
+                                            <div>
+                                                <h2
+                                                    className="text-lg md:text-xl font-bold tracking-wider"
+                                                    style={{
+                                                        color: theme.primaryColor,
+                                                    }}
+                                                >
+                                                    {(
+                                                        category.name ||
+                                                        'Category Name'
+                                                    ).toUpperCase()}
+                                                </h2>
+                                                {category.description && (
+                                                    <p className="text-sm text-gray-600">
+                                                        {category.description}
+                                                    </p>
+                                                )}
+                                                <hr
+                                                    className="md:my-2 border-t"
+                                                    style={{
+                                                        borderColor: `${theme.primaryColor}40`,
+                                                    }}
+                                                />
+                                                <div className="space-y-3 md:space-y-4">
+                                                    {items.map(
+                                                        (
+                                                            item,
+                                                            index: number
+                                                        ) => (
+                                                            <div
+                                                                key={
+                                                                    item.id ||
+                                                                    `item-${index}`
+                                                                }
+                                                                className="flex gap-3 items-start"
+                                                            >
+                                                                <div className="w-12 h-12 md:w-15 md:h-15 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                                                    {item.imageUrl ? (
+                                                                        <AppImage
+                                                                            src={
+                                                                                item.imageUrl!
+                                                                            }
+                                                                            alt={
+                                                                                item.name
+                                                                            }
+                                                                            fill
+                                                                            className="object-cover w-full h-full"
+                                                                        />
+                                                                    ) : (
+                                                                        '🍽️'
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="flex justify-between items-start gap-2 md:gap-3 flex-1">
+                                                                    <div className="flex-1">
+                                                                        <h3
+                                                                            className="font-semibold text-gray-900 text-sm md:text-base"
+                                                                            style={{
+                                                                                color: theme.primaryColor,
+                                                                            }}
+                                                                        >
+                                                                            {item.name ||
+                                                                                'Item Name'}
+                                                                        </h3>
+                                                                        <div className="flex flex-wrap gap-1">
+                                                                            <DietaryTags
+                                                                                item={
+                                                                                    item
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                        {item.description && (
+                                                                            <p className="text-gray-600 text-xs md:text-sm leading-relaxed">
+                                                                                {
+                                                                                    item.description
+                                                                                }
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex flex-col items-end gap-2 min-w-fit text-right">
+                                                                        <span
+                                                                            className="font-semibold text-gray-900 text-sm md:text-base"
+                                                                            style={{
+                                                                                color: theme.accentColor,
+                                                                            }}
+                                                                        >
+                                                                            $
+                                                                            {typeof item.price ===
+                                                                            'number'
+                                                                                ? item.price.toFixed(
+                                                                                      2
+                                                                                  )
+                                                                                : '0.00'}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                        </div>
+                    ) : (
+                        <div className="text-center py-16">
+                            <ChefHat className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                                No menu items yet
+                            </h3>
+                            <p className="text-gray-500">
+                                Start adding categories and items to see your
+                                menu preview
+                            </p>
+                        </div>
                     )}
                 </div>
-
-                {/* Categories */}
-                {menuData.categories && menuData.categories.length > 0 ? (
-                    menuData.categories
-                        .filter((cat: any) => cat.isActive !== false)
-                        .map((category: any) => (
-                            <div key={category.id} className="mb-10">
-                                <div className="mb-6">
-                                    <h2
-                                        className="text-3xl font-bold mb-3"
-                                        style={{ color: theme.primaryColor }}
-                                    >
-                                        {category.name || 'Category Name'}
-                                    </h2>
-                                    {category.description && (
-                                        <p className="text-gray-600 text-lg leading-relaxed">
-                                            {category.description}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="space-y-6">
-                                    {category.items &&
-                                    category.items.length > 0 ? (
-                                        category.items
-                                            .filter(
-                                                (item: any) =>
-                                                    item.isAvailable !== false
-                                            )
-                                            .sort(
-                                                (a: any, b: any) =>
-                                                    (a.displayOrder || 0) -
-                                                    (b.displayOrder || 0)
-                                            )
-                                            .map((item: any) => (
-                                                <div
-                                                    key={item.id}
-                                                    className="border-b border-gray-200 pb-6 last:border-b-0"
-                                                >
-                                                    <div className="flex justify-between items-start">
-                                                        <div className="flex-1 pr-6">
-                                                            <h3
-                                                                className="text-xl font-semibold mb-2"
-                                                                style={{
-                                                                    color: theme.primaryColor,
-                                                                }}
-                                                            >
-                                                                {item.name ||
-                                                                    'Item Name'}
-                                                            </h3>
-                                                            {item.description && (
-                                                                <p className="text-gray-600 leading-relaxed mb-2">
-                                                                    {
-                                                                        item.description
-                                                                    }
-                                                                </p>
-                                                            )}
-                                                            <DietaryTags
-                                                                item={item}
-                                                            />
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <span
-                                                                className="text-2xl font-bold"
-                                                                style={{
-                                                                    color: theme.accentColor,
-                                                                }}
-                                                            >
-                                                                $
-                                                                {typeof item.price ===
-                                                                'number'
-                                                                    ? item.price.toFixed(
-                                                                          2
-                                                                      )
-                                                                    : '0.00'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                    ) : (
-                                        <div className="text-center py-8 text-gray-500">
-                                            <p>No items in this category yet</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))
-                ) : (
-                    <div className="text-center py-16">
-                        <ChefHat className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                        <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                            No menu items yet
-                        </h3>
-                        <p className="text-gray-500">
-                            Start adding categories and items to see your menu
-                            preview
-                        </p>
-                    </div>
-                )}
             </div>
         </div>
     );

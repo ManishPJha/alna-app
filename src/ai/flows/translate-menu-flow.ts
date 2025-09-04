@@ -28,6 +28,7 @@ const MenuSectionSchema = z.object({
 const MenuSchema = z.object({
     title: z.string(),
     description: z.string(),
+    restaurantName: z.string(),
     sections: z.array(MenuSectionSchema),
 });
 
@@ -55,7 +56,7 @@ const prompt = ai.definePrompt({
   Your task is to translate the provided menu into the target language.
 
   Follow these rules:
-  1.  **Translate All Text:** Translate the 'title' of the menu, the 'title' of each section, and the 'name' and 'description' of each menu item.
+  1.  **Translate All Text:** Translate the top-level 'title', 'description', and 'restaurantName' of the menu, the 'title' and 'description' of each section, and the 'name' and 'description' of each menu item.
   2.  **Do Not Translate IDs and Prices:** The 'id', 'price', and 'tags' fields must remain exactly the same as in the original menu.
   3.  **Maintain Structure:** The output must be a valid JSON object with the exact same structure as the input menu.
   4.  **Natural Language:** Ensure the translations sound natural and appealing for a restaurant context.

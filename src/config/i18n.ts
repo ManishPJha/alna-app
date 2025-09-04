@@ -9,6 +9,7 @@ export const languages = [
     'ja',
     'zh',
     'ko',
+    'bg',
 ];
 export const defaultNS = 'translation';
 export const cookieName = 'alna-i18next';

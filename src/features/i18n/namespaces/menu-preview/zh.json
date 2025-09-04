@@ -22,7 +22,8 @@
         "cart_modal_order_btn": "下单",
         "cart_modal_order_btn_loading": "下单中...",
         "cart_modal_order_price_total": "总计",
-        "cart_modal_order_item_price_desc": "每个 ${{price}}"
+        "cart_modal_order_item_price_desc": "每个 ${{price}}",
+        "order_success": "下单成功"
     },
     "empty_state": {
         "no_items_found": "未找到商品",
@@ -40,9 +41,12 @@
         "ai_chat_placeholder": "问我关于菜单的任何问题",
         "ai_chat_loading_text": "思考中...",
         "ai_chat_welcome_message": "你好！我是你的AI菜单助手。我可以帮你找到菜品、解释配料、建议搭配或回答关于我们菜单的任何问题！",
-        "ai_chat_error_message": "抱歉，我现在处理您的请求时遇到了问题。请稍后再试。",
-        "dietary_vegan": "VG = 纯素",
-        "dietary_vegetarian": "V = 素食",
-        "dietary_gluten_free": "GF = 无麸质"
+        "ai_chat_error_message": "抱歉，我现在处理您的请求时遇到了问题。请稍后再试。"
+    },
+    "dietary_tags": {
+        "vegetarian": "素食",
+        "vegan": "纯素",
+        "gluten_free": "无麸质",
+        "spicy": "辣"
     }
 }

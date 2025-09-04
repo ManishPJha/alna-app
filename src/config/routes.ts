@@ -36,6 +36,7 @@ export const paths = {
     publicMenuBase: '/menu', // Base path for public menu pages
     publicMenu: '/menu/[id]', // Add the public menu route
     publicMenuRoot: '/public/menu', // Public menu entry point used by QR links
+    manifest: '/manifest.json',
 } as const;
 
 // ⚠️ DEFINE METADATA FOR NEW ROUTES HERE ⚠️
@@ -80,5 +81,10 @@ export const routes: Record<keyof typeof paths, RouteData> = {
         name: 'Public Menu (QR Entry)',
         path: paths.publicMenuRoot,
         accessType: 'universal', // Accessible without login
+    },
+    manifest: {
+        name: 'Manifest',
+        path: paths.manifest,
+        accessType: 'public',
     },
 };

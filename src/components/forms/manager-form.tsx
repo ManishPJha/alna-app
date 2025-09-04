@@ -29,9 +29,10 @@ const managerSchema = z.object({
     password: z
         .string()
         .min(6, 'Password must be at least 6 characters')
-        .optional(),
+        .optional()
+        .or(z.literal('')),
     role: z.enum(['ADMIN', 'MANAGER']),
-    restaurantId: z.string().optional(),
+    restaurantId: z.string().optional().nullable(),
     isActive: z.boolean(),
 });
 
@@ -44,7 +45,6 @@ interface ManagerFormProps {
     onSubmit: (data: ManagerFormData) => void;
     onCancel?: () => void;
     loading?: boolean;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     currentUser?: any;
 }
 
@@ -60,9 +60,9 @@ export function ManagerForm({
     const defaultFormValues: ManagerFormData = {
         name: manager?.name || '',
         email: manager?.email || '',
-        password: undefined,
+        password: '',
         role: manager?.role || 'MANAGER',
-        restaurantId: manager?.restaurantId || undefined,
+        restaurantId: manager?.restaurantId || null,
         isActive: manager?.isActive ?? true,
     };
 
@@ -150,6 +150,7 @@ export function ManagerForm({
                                             placeholder="Enter secure password"
                                             className="bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                             {...field}
+                                            value={field.value || ''}
                                         />
                                     </FormControl>
                                     <FormMessage className="text-red-600" />
@@ -216,13 +217,11 @@ export function ManagerForm({
                                             // Handle the special "unassigned" case
                                             field.onChange(
                                                 value === 'unassigned'
-                                                    ? undefined
+                                                    ? null
                                                     : value
                                             );
                                         }}
-                                        defaultValue={
-                                            field.value || 'unassigned'
-                                        }
+                                        value={field.value || 'unassigned'}
                                     >
                                         <FormControl>
                                             <SelectTrigger className="bg-white border-gray-300 text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">

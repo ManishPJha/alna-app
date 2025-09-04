@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { ManagerForm } from '@/components/forms/manager-form';
@@ -12,23 +11,20 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { useRestaurants } from '@/hooks/restaurants/useRestaurants';
+import { useRestaurantsSuspense } from '@/hooks/restaurants/useRestaurants';
 import {
     useCreateUser,
     useDeleteUser,
     useUpdateUser,
-    useUsers,
+    useUsersSuspense,
 } from '@/hooks/users/useUsers';
 import { User } from '@/types/api';
 import { PaginationState, SortingState } from '@tanstack/react-table';
 import { Plus, Search, Users as UsersIcon } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 
-interface ManagersPageProps {
-    currentUser?: any;
-}
-
-export default function ManagersPage({ currentUser }: ManagersPageProps) {
+export default function ManagersPage() {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editingManager, setEditingManager] = useState<User | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -43,8 +39,12 @@ export default function ManagersPage({ currentUser }: ManagersPageProps) {
         { id: 'createdAt', desc: true },
     ]);
 
+    const session = useSession();
+
+    const currentUser = session?.data?.user;
+
     // Queries and mutations with server-side params
-    const { data: usersData, isLoading } = useUsers({
+    const { data: usersData, isLoading } = useUsersSuspense({
         page: pagination.pageIndex + 1,
         limit: pagination.pageSize,
         search: searchQuery,
@@ -53,7 +53,7 @@ export default function ManagersPage({ currentUser }: ManagersPageProps) {
     });
 
     // Get restaurants for the form dropdown
-    const { data: restaurantsData } = useRestaurants();
+    const { data: restaurantsData } = useRestaurantsSuspense();
 
     const createMutation = useCreateUser();
     const updateMutation = useUpdateUser();
@@ -76,6 +76,7 @@ export default function ManagersPage({ currentUser }: ManagersPageProps) {
             setIsCreateOpen(false);
         } catch (error) {
             // Error handled by mutation
+            console.error('Error creating manager:', error);
         }
     };
 
@@ -89,6 +90,7 @@ export default function ManagersPage({ currentUser }: ManagersPageProps) {
             setEditingManager(null);
         } catch (error) {
             // Error handled by mutation
+            console.error('Error updating manager:', error);
         }
     };
 
@@ -99,6 +101,7 @@ export default function ManagersPage({ currentUser }: ManagersPageProps) {
             setDeletingId(null);
         } catch (error) {
             // Error handled by mutation
+            console.error('Error deleting manager:', error);
         }
     };
 
@@ -184,15 +187,13 @@ export default function ManagersPage({ currentUser }: ManagersPageProps) {
                             Create New Manager
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="p-6 bg-white">
-                        <ManagerForm
-                            restaurants={restaurants}
-                            onSubmit={handleCreate}
-                            onCancel={() => setIsCreateOpen(false)}
-                            loading={createMutation.isPending}
-                            currentUser={currentUser}
-                        />
-                    </div>
+                    <ManagerForm
+                        restaurants={restaurants}
+                        onSubmit={handleCreate}
+                        onCancel={() => setIsCreateOpen(false)}
+                        loading={createMutation.isPending}
+                        currentUser={currentUser}
+                    />
                 </DialogContent>
             </Dialog>
 
@@ -207,16 +208,14 @@ export default function ManagersPage({ currentUser }: ManagersPageProps) {
                             Edit Manager
                         </DialogTitle>
                     </DialogHeader>
-                    <div className="p-6 bg-white">
-                        <ManagerForm
-                            manager={editingManager || undefined}
-                            restaurants={restaurants}
-                            onSubmit={handleUpdate}
-                            onCancel={() => setEditingManager(null)}
-                            loading={updateMutation.isPending}
-                            currentUser={currentUser}
-                        />
-                    </div>
+                    <ManagerForm
+                        manager={editingManager || undefined}
+                        restaurants={restaurants}
+                        onSubmit={handleUpdate}
+                        onCancel={() => setEditingManager(null)}
+                        loading={updateMutation.isPending}
+                        currentUser={currentUser}
+                    />
                 </DialogContent>
             </Dialog>
 

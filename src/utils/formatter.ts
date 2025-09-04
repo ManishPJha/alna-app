@@ -41,3 +41,19 @@ export function generateInitials(name: string) {
         .toUpperCase()
         .slice(0, 2);
 }
+
+export function bufferToArrayBuffer(
+    buffer: Buffer
+): ArrayBuffer | SharedArrayBuffer {
+    return buffer.buffer.slice(
+        buffer.byteOffset,
+        buffer.byteOffset + buffer.byteLength
+    );
+}
+
+export function formatPrice(price: number, currency = 'USD') {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency,
+    }).format(price);
+}

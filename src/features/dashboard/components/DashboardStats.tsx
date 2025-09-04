@@ -2,72 +2,58 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/shared/utils';
-import {
-    Menu,
-    QrCode,
-    Store,
-    TrendingDown,
-    TrendingUp,
-    Users,
-} from 'lucide-react';
-
-interface DashboardStatsProps {
-    stats: {
-        restaurants: number;
-        users: number;
-        qrCodes: number;
-        activeMenus: number;
-    };
-    userRole: string;
-}
+import { Menu, QrCode, ShoppingCart, Store, Users } from 'lucide-react';
+import { DashboardStatsProps } from '../types/dashboard';
 
 export function DashboardStats({ stats, userRole }: DashboardStatsProps) {
     const statItems = [
         {
-            title: 'Total Restaurants',
+            title: 'Restaurants Onboarded',
             value: stats.restaurants,
             icon: Store,
             color: 'bg-blue-500',
-            change: '+12%',
-            positive: true,
         },
         ...(userRole === 'ADMIN'
             ? [
                   {
-                      title: 'Total Users',
+                      title: 'Total Managers',
                       value: stats.users,
                       icon: Users,
                       color: 'bg-green-500',
-                      change: '+8%',
-                      positive: true,
                   },
               ]
             : [
                   {
-                      title: 'QR Codes',
+                      title: 'QR Codes Generated',
                       value: stats.qrCodes,
                       icon: QrCode,
                       color: 'bg-purple-500',
-                      change: '+15%',
-                      positive: true,
                   },
               ]),
         {
-            title: 'Total Orders',
-            value: 1240, // Placeholder value
-            icon: Store,
-            color: 'bg-red-500',
-            change: '-3%',
-            positive: false,
+            title: 'Total Orders Placed By Users',
+            value: stats.orders,
+            icon: ShoppingCart,
+            color: 'bg-purple-500',
         },
         {
-            title: 'Active Menus',
+            title: 'Total Published Menus',
             value: stats.activeMenus,
             icon: Menu,
             color: 'bg-orange-500',
-            change: '+5%',
-            positive: true,
         },
+        // {
+        //     title: 'Languages Translated',
+        //     value: 42, // Placeholder, can be dynamic later
+        //     icon: Languages,
+        //     color: 'bg-pink-500',
+        // },
+        // {
+        //     title: 'Customer Interactions',
+        //     value: 186, // Placeholder, e.g., AI-powered Q&A or help requests
+        //     icon: MessageSquare,
+        //     color: 'bg-teal-500',
+        // },
     ];
 
     return (
@@ -87,25 +73,6 @@ export function DashboardStats({ stats, userRole }: DashboardStatsProps) {
                                 <p className="text-3xl font-bold text-gray-900">
                                     {item.value.toLocaleString()}
                                 </p>
-                                <div className="flex items-center mt-2">
-                                    {item.positive ? (
-                                        <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
-                                    ) : (
-                                        <TrendingDown className="h-4 w-4 text-red-600 mr-1" />
-                                    )}
-                                    <span
-                                        className={`text-sm font-medium ${
-                                            item.positive
-                                                ? 'text-green-600'
-                                                : 'text-red-600'
-                                        }`}
-                                    >
-                                        {item.change}
-                                    </span>
-                                    <span className="text-sm text-gray-500 ml-1">
-                                        vs last month
-                                    </span>
-                                </div>
                             </div>
                             <div className={`p-3 rounded-lg ${item.color}`}>
                                 <item.icon className="h-6 w-6 text-white" />

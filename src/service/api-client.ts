@@ -68,11 +68,14 @@ class ApiClient {
         return this.request<T>(url);
     }
 
-    async getBlob(endpoint: string, params?: Record<string, string>): Promise<Blob> {
+    async getBlob(
+        endpoint: string,
+        params?: Record<string, string>
+    ): Promise<Blob> {
         const url = params
             ? `${this.baseUrl}${endpoint}?${new URLSearchParams(params)}`
             : `${this.baseUrl}${endpoint}`;
-            
+
         const response = await fetch(url, {
             headers: {
                 'Content-Type': 'application/json',
@@ -82,7 +85,8 @@ class ApiClient {
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             throw new ApiError(
-                error.message || `HTTP ${response.status}: ${response.statusText}`,
+                error.message ||
+                    `HTTP ${response.status}: ${response.statusText}`,
                 response.status,
                 error.code
             );

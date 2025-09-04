@@ -19,9 +19,12 @@ interface OrderCardProps {
   order: Order;
   isDragging?: boolean;
   isUpdating?: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelectChange?: (checked: boolean) => void;
 }
 
-export function OrderCard({ order, isDragging = false, isUpdating = false }: OrderCardProps) {
+export function OrderCard({ order, isDragging = false, isUpdating = false, selectable = false, selected = false, onSelectChange }: OrderCardProps) {
   const getTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -57,6 +60,20 @@ export function OrderCard({ order, isDragging = false, isUpdating = false }: Ord
       ${isDragging ? 'shadow-lg scale-105 rotate-2' : ''}
       ${isUpdating ? 'opacity-50 pointer-events-none' : ''}
     `}>
+      {/* Selection checkbox */}
+      {selectable && (
+        <div className="flex items-center justify-end">
+          <label className="inline-flex items-center gap-2 text-xs text-gray-600">
+            <input
+              type="checkbox"
+              className="h-4 w-4 cursor-pointer"
+              checked={selected}
+              onChange={(e) => onSelectChange?.(e.target.checked)}
+            />
+            Select
+          </label>
+        </div>
+      )}
       {/* Header with time */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-sm text-gray-600">

@@ -88,3 +88,14 @@ export const categories = [
         ],
     },
 ];
+
+export const timezones = [
+    { value: 'UTC', label: 'UTC' },
+    { value: 'America/New_York', label: 'Eastern Time' },
+    { value: 'America/Chicago', label: 'Central Time' },
+    { value: 'America/Denver', label: 'Mountain Time' },
+    { value: 'America/Los_Angeles', label: 'Pacific Time' },
+    { value: 'Europe/London', label: 'London' },
+    { value: 'Europe/Paris', label: 'Paris' },
+    { value: 'Asia/Tokyo', label: 'Tokyo' },
+];

@@ -22,7 +22,8 @@
         "cart_modal_order_btn": "Fazer pedido",
         "cart_modal_order_btn_loading": "Enviando pedido...",
         "cart_modal_order_price_total": "Total",
-        "cart_modal_order_item_price_desc": "${{price}} cada"
+        "cart_modal_order_item_price_desc": "${{price}} cada",
+        "order_success": "Pedido realizado com sucesso"
     },
     "empty_state": {
         "no_items_found": "Nenhum item encontrado",
@@ -40,9 +41,12 @@
         "ai_chat_placeholder": "Pergunte-me qualquer coisa sobre o menu",
         "ai_chat_loading_text": "Pensando...",
         "ai_chat_welcome_message": "Olá! Sou seu assistente de menu com IA. Posso ajudá-lo a encontrar pratos, explicar ingredientes, sugerir combinações ou responder a qualquer pergunta sobre nosso menu!",
-        "ai_chat_error_message": "Desculpe, estou tendo problemas para processar sua solicitação no momento. Por favor, tente novamente em um momento.",
-        "dietary_vegan": "VG = Vegano",
-        "dietary_vegetarian": "V = Vegetariano",
-        "dietary_gluten_free": "GF = Sem Glúten"
+        "ai_chat_error_message": "Desculpe, estou tendo problemas para processar sua solicitação no momento. Por favor, tente novamente em um momento."
+    },
+    "dietary_tags": {
+        "vegetarian": "Vegetariano",
+        "vegan": "Vegano",
+        "gluten_free": "Sem Glúten",
+        "spicy": "Picante"
     }
 }

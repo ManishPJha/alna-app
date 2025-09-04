@@ -29,8 +29,6 @@ export default function EditMenuPage() {
     const transformedMenu = useMemo(() => {
         if (!menuResponse) return null;
 
-        console.log('Raw API response:', menuResponse);
-
         // Validate the API response structure (more lenient validation)
         if (!MenuDataTransformer.validateApiResponse(menuResponse)) {
             console.warn(
@@ -40,7 +38,6 @@ export default function EditMenuPage() {
         }
 
         const transformed = MenuDataTransformer.fromApiResponse(menuResponse);
-        console.log('Transformed menu data:', transformed);
 
         return transformed;
     }, [menuResponse]);
@@ -50,8 +47,6 @@ export default function EditMenuPage() {
 
     const handleSave = async (data: MenuFormData) => {
         try {
-            console.log('Saving menu data:', data);
-
             // Transform form data back to API format
             const apiData = MenuDataTransformer.toApiFormat(data);
 

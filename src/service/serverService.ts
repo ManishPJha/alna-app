@@ -66,38 +66,57 @@ export async function getRequestWithRevalidate(
 }
 
 export async function getApiWithParam(path: string, param: string) {
+    const cookieStore = await cookies();
     return apiCall(`${path}/${param}`, {
         next: { revalidate: 3600 },
-        headers: { Cookie: cookies().toString() },
+        headers: { Cookie: cookieStore.toString() },
     });
 }
 
 export async function postRequest(path: string, data: any) {
+    const cookieStore = await cookies();
     return apiCall(`${path}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            Cookie: cookies().toString(),
+            Cookie: cookieStore.toString(),
         },
         body: JSON.stringify(data),
     });
 }
 
+export async function postRequestWithFormData(
+    path: string,
+    formData: FormData
+): Promise<any> {
+    const cookieStore = await cookies();
+    return apiCall(`${path}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'multipart/form-data',
+            Cookie: cookieStore.toString(),
+        },
+        body: formData,
+    });
+}
+
 export async function deleteRequest(path: string) {
+    const cookieStore = await cookies();
     return apiCall(`${path}`, {
         method: 'DELETE',
         headers: {
-            Cookie: cookies().toString(),
+            Cookie: cookieStore.toString(),
         },
     });
 }
 
 export async function updateRequest(path: string, data: any) {
+    const cookieStore = await cookies();
     return apiCall(`${path}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-            Cookie: cookies().toString(),
+            Cookie: cookieStore.toString(),
         },
         body: JSON.stringify(data),
     });

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/shared/components/ui/button';
 import { Menu, Restaurant } from '@/types/api';
 import { formatDate } from '@/utils/formatter';
@@ -40,9 +40,9 @@ interface MenusTableProps {
     onView: (menu: Menu) => void;
     onDuplicate: (menu: Menu) => void;
     onDelete: (id: string) => void;
+    onPublish: (id: string, isPublished: boolean) => Promise<void>;
     onPaginationChange: (pagination: PaginationState) => void;
     onSortingChange: (sorting: SortingState) => void;
-    currentUser?: any;
 }
 
 export function MenusTable({
@@ -54,11 +54,14 @@ export function MenusTable({
     onView,
     onDuplicate,
     onDelete,
+    onPublish,
     onPaginationChange,
     onSortingChange,
-}: // currentUser,
-MenusTableProps) {
+}: MenusTableProps) {
     const [sorting, setSorting] = useState<SortingState>([]);
+    const [publishingItems, setPublishingItems] = useState<Set<string>>(
+        new Set()
+    );
 
     // Handle sorting changes
     const handleSortingChange = (updaterOrValue: any) => {
@@ -83,6 +86,31 @@ MenusTableProps) {
                 : updaterOrValue;
 
         onPaginationChange(newPagination);
+    };
+
+    // Handle publish/unpublish
+    const handlePublishToggle = async (
+        menuId: string,
+        currentPublishState: boolean
+    ) => {
+        const newPublishState = !currentPublishState;
+
+        // Add to loading state
+        setPublishingItems((prev) => new Set([...prev, menuId]));
+
+        try {
+            await onPublish(menuId, newPublishState);
+        } catch (error) {
+            console.error('Failed to update publish status:', error);
+            // You could add toast notification here
+        } finally {
+            // Remove from loading state
+            setPublishingItems((prev) => {
+                const newSet = new Set(prev);
+                newSet.delete(menuId);
+                return newSet;
+            });
+        }
     };
 
     // Helper function to get restaurant name
@@ -132,20 +160,32 @@ MenusTableProps) {
                     </div>
                 ),
             },
+            // {
+            //     accessorKey: 'categories',
+            //     header: 'Categories',
+            //     cell: ({ row }) => (
+            //         <div className="text-sm text-gray-500">
+            //             {row.original.categories?.length || 0} categories
+            //         </div>
+            //     ),
+            // },
+            // {
+            //     accessorKey: 'items',
+            //     header: 'Items',
+            //     cell: ({ row }) => (
+            //         <div className="text-sm text-gray-500">
+            //             {getItemCount(row.original)} items
+            //         </div>
+            //     ),
+            // },
+            // combine categories and items count in single column
             {
                 accessorKey: 'categories',
-                header: 'Categories',
+                header: 'Categories & Items',
+                enableSorting: false,
                 cell: ({ row }) => (
                     <div className="text-sm text-gray-500">
-                        {row.original.categories?.length || 0} categories
-                    </div>
-                ),
-            },
-            {
-                accessorKey: 'items',
-                header: 'Items',
-                cell: ({ row }) => (
-                    <div className="text-sm text-gray-500">
+                        {row.original.categories?.length || 0} categories |{' '}
                         {getItemCount(row.original)} items
                     </div>
                 ),
@@ -153,6 +193,7 @@ MenusTableProps) {
             {
                 accessorKey: 'theme',
                 header: 'Theme',
+                enableSorting: false,
                 cell: ({ row }) => (
                     <div className="flex items-center space-x-2">
                         <div className="flex space-x-1">
@@ -189,26 +230,52 @@ MenusTableProps) {
                 ),
             },
             {
-                accessorKey: 'isActive',
-                header: 'Status',
-                cell: ({ row }) => (
-                    <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                            row.original.isActive
-                                ? 'bg-green-100 text-green-800 border border-green-200'
-                                : 'bg-red-100 text-red-800 border border-red-200'
-                        }`}
-                    >
-                        <div
-                            className={`h-1.5 w-1.5 rounded-full mr-2 ${
-                                row.original.isActive
-                                    ? 'bg-green-500'
-                                    : 'bg-red-500'
-                            }`}
-                        ></div>
-                        {row.original.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                ),
+                accessorKey: 'isPublished',
+                header: 'Published',
+                enableSorting: false,
+                cell: ({ row }) => {
+                    const isPublishing = publishingItems.has(row.original.id);
+                    const isPublished = row.original.isPublished;
+
+                    return (
+                        <div className="flex items-center space-x-2">
+                            <Switch
+                                size="sm"
+                                variant={isPublished ? 'success' : 'default'}
+                                checked={isPublished}
+                                disabled={
+                                    isPublishing || !row.original.isActive
+                                }
+                                onCheckedChange={() =>
+                                    handlePublishToggle(
+                                        row.original.id,
+                                        isPublished
+                                    )
+                                }
+                            />
+                            <div className="flex flex-col">
+                                <span
+                                    className={`text-xs font-medium ${
+                                        isPublished
+                                            ? 'text-green-700'
+                                            : 'text-gray-500'
+                                    }`}
+                                >
+                                    {isPublishing
+                                        ? 'Updating...'
+                                        : isPublished
+                                        ? 'Live'
+                                        : 'Draft'}
+                                </span>
+                                {!row.original.isActive && (
+                                    <span className="text-xs text-amber-600">
+                                        Menu must be active
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    );
+                },
             },
             {
                 accessorKey: 'createdAt',
@@ -259,7 +326,15 @@ MenusTableProps) {
             },
         ],
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [onEdit, onView, onDuplicate, onDelete, restaurants]
+        [
+            onEdit,
+            onView,
+            onDuplicate,
+            onDelete,
+            restaurants,
+            publishingItems,
+            handlePublishToggle,
+        ]
     );
 
     const table = useReactTable({

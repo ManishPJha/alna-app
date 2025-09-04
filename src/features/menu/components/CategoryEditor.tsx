@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { MenuFormData } from '@/types/menu';
 import { ChefHat, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Controller, UseFormReturn, useFieldArray } from 'react-hook-form';
 import { FormInput, FormTextarea } from './FormInput';
 import { ItemEditor } from './ItemEditor';
@@ -11,46 +12,52 @@ interface CategoryEditorProps {
     categoryIndex: number;
     form: UseFormReturn<MenuFormData>;
     onDelete: () => void;
-    addItem: () => void;
 }
 
 export function CategoryEditor({
     categoryIndex,
     form,
     onDelete,
-    addItem,
 }: CategoryEditorProps) {
     const [isExpanded, setIsExpanded] = useState(true);
+    const [mode, setMode] = useState<'edit' | 'create'>('create');
+    const pathname = usePathname();
 
-    // const {
-    //     fields: itemFields,
-    //     append: appendItem,
-    //     remove: removeItem,
-    // } = useFieldArray({
-    //     control: form.control,
-    //     name: `categories.${categoryIndex}.items`,
-    // });
+    useEffect(() => {
+        if (pathname.includes('edit')) {
+            setMode('edit');
+        } else {
+            setMode('create');
+        }
+    }, [pathname]);
 
-    // const addItem = () => {
-    //     const newItem = {
-    //         id: `temp-item-${Date.now()}`,
-    //         name: 'New Item',
-    //         description: '',
-    //         price: 0,
-    //         isVegetarian: false,
-    //         isVegan: false,
-    //         isGlutenFree: false,
-    //         isSpicy: false,
-    //         isAvailable: true,
-    //         displayOrder: itemFields.length + 1,
-    //     };
-    //     appendItem(newItem);
-    // };
-
-    const { fields: itemFields, remove: removeItem } = useFieldArray({
+    const {
+        fields: itemFields,
+        append: appendItem,
+        remove: removeItem,
+    } = useFieldArray({
         control: form.control,
         name: `categories.${categoryIndex}.items`,
     });
+
+    const addItem = () => {
+        const newItem = {
+            id: `temp-item-${Date.now()}-${categoryIndex}`, // Include categoryIndex for uniqueness
+            name: 'New Item',
+            description: '',
+            price: 0,
+            imageUrl: '', // Add image URL field
+            isVegetarian: false,
+            isVegan: false,
+            isGlutenFree: false,
+            isSpicy: false,
+            isAvailable: true,
+            displayOrder: itemFields.length + 1,
+        };
+
+        // Use the specific category's appendItem function
+        appendItem(newItem);
+    };
 
     return (
         <Card className="mb-6 hover:shadow-xl transition-all duration-300">
@@ -140,17 +147,44 @@ export function CategoryEditor({
                                 </Button>
                             </div>
                         ) : (
-                            itemFields.map((item, itemIndex) => (
-                                <ItemEditor
-                                    key={item.id}
-                                    itemIndex={itemIndex}
-                                    categoryIndex={categoryIndex}
-                                    form={form}
-                                    onDelete={() => removeItem(itemIndex)}
-                                />
-                            ))
+                            itemFields.map((item, itemIndex) => {
+                                // Get the actual database ID from form data
+                                const actualItem = form.getValues(
+                                    `categories.${categoryIndex}.items.${itemIndex}`
+                                );
+                                const actualMenuItemId = actualItem?.id;
+
+                                return (
+                                    <ItemEditor
+                                        key={item.id} // Keep using useFieldArray's id for React key
+                                        itemIndex={itemIndex}
+                                        categoryIndex={categoryIndex}
+                                        form={form}
+                                        mode={mode}
+                                        menuItemId={actualMenuItemId}
+                                        onDelete={() => removeItem(itemIndex)}
+                                    />
+                                );
+                            })
                         )}
                     </div>
+
+                    {/* Intersection Buttons - Bottom Add Item & Category */}
+                    {itemFields.length > 0 && (
+                        <div className="mt-6 pt-4 border-t border-gray-200">
+                            <div className="flex items-center justify-center space-x-4">
+                                <Button
+                                    variant="outline"
+                                    onClick={addItem}
+                                    className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                                    type="button"
+                                >
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Add Item
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             )}
         </Card>

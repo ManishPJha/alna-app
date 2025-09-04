@@ -1,5 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { DefaultOptions, QueryClient } from '@tanstack/react-query';
+import {
+    DefaultOptions,
+    defaultShouldDehydrateQuery,
+    isServer,
+    QueryClient,
+} from '@tanstack/react-query';
 
 const queryConfig: DefaultOptions = {
     queries: {
@@ -16,14 +20,42 @@ const queryConfig: DefaultOptions = {
         refetchOnWindowFocus: false,
         refetchOnReconnect: 'always',
     },
+    dehydrate: {
+        // include pending queries in dehydration
+        shouldDehydrateQuery: (query) =>
+            defaultShouldDehydrateQuery(query) ||
+            query.state.status === 'pending',
+    },
     mutations: {
         retry: 1,
     },
 };
 
-export const queryClient = new QueryClient({
-    defaultOptions: queryConfig,
-});
+// export const queryClient = new QueryClient({
+//     defaultOptions: queryConfig,
+// });
+
+function makeQueryClient(skipDefaults = false) {
+    return new QueryClient(skipDefaults ? {} : { defaultOptions: queryConfig });
+}
+
+let browserQueryClient: QueryClient | undefined;
+
+export function getQueryClient() {
+    if (isServer) {
+        // Server: always make a new query client
+        return makeQueryClient(true);
+    } else {
+        // Browser: make a new query client if we don't already have one
+        // This is very important, so we don't re-make a new client if React
+        // suspends during the initial render. This may not be needed if we
+        // have a suspense boundary BELOW the creation of the query client
+        if (!browserQueryClient) browserQueryClient = makeQueryClient();
+        return browserQueryClient;
+    }
+}
+
+export const queryClient = getQueryClient();
 
 // Query Keys - Centralized key management
 export const queryKeys = {
